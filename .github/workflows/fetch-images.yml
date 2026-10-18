@@ -1,0 +1,31 @@
+name: Fetch placeholder images
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download editorial placeholders from Unsplash
+        run: |
+          set -e
+          mkdir -p web/public/img
+          cd web/public/img
+          while read -r id w; do
+            curl -sfL -o "$id.jpg" "https://images.unsplash.com/photo-$id?w=$w&q=72&auto=format&fit=crop&fm=jpg" &
+          done < "$GITHUB_WORKSPACE/web/scripts/images.txt"
+          wait
+          ls | wc -l
+          du -sh .
+      - name: Commit images
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add web/public/img
+          git diff --cached --quiet || git commit -m "Add editorial placeholder images"
+          git push
