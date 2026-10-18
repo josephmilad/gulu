@@ -31,7 +31,7 @@ export default function StylesPage() {
               <Link href={`/styles/${s.slug}`} className="group block">
                 <div className="relative aspect-[4/5] w-full overflow-hidden bg-[#ebe8e2]">
                   <Image
-                    src={img(s.cover, 900)}
+                    src={img(s.cover)}
                     alt={s.name}
                     fill
                     sizes="(max-width: 640px) 100vw, 33vw"

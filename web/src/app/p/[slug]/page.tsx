@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: PageProps<"/p/[slug]">): Prom
   return {
     title: `${piece.brand} ${piece.name}`,
     description: piece.why,
-    openGraph: { images: [img(piece.images[0].src, 1200)] },
+    openGraph: { images: [img(piece.images[0].src)] },
   };
 }
 

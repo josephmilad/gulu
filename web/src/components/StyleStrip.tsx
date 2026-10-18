@@ -22,7 +22,7 @@ export default function StyleStrip() {
             <Link href={`/styles/${s.slug}`} className="group block">
               <div className="relative aspect-[4/5] w-full overflow-hidden bg-[#ebe8e2]">
                 <Image
-                  src={img(s.cover, 800)}
+                  src={img(s.cover)}
                   alt={s.name}
                   fill
                   sizes="(max-width: 768px) 68vw, 20vw"

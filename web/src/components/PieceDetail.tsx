@@ -53,7 +53,7 @@ export default function PieceDetail({
           className={`relative w-full overflow-hidden bg-[#ebe8e2] ${compact ? "aspect-[4/5]" : "aspect-[3/4]"}`}
         >
           <Image
-            src={img(hero.src, 1400, 80)}
+            src={img(hero.src)}
             alt={hero.alt}
             fill
             priority
@@ -140,7 +140,7 @@ export default function PieceDetail({
                   <>
                     <div className="relative aspect-[3/4] w-full overflow-hidden bg-[#ebe8e2]">
                       <Image
-                        src={img(s.images[0].src, 400)}
+                        src={img(s.images[0].src)}
                         alt={s.images[0].alt}
                         fill
                         sizes="12vw"

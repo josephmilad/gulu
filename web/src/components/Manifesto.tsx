@@ -37,10 +37,10 @@ export default function Manifesto() {
         </Reveal>
         <div className="grid grid-cols-2 gap-3 md:col-span-7 md:gap-5">
           <Reveal className="relative aspect-[3/4] overflow-hidden bg-[#ebe8e2] md:mt-16">
-            <Image src={img(a.src, 900)} alt={a.alt} fill sizes="30vw" className="object-cover" />
+            <Image src={img(a.src)} alt={a.alt} fill sizes="30vw" className="object-cover" />
           </Reveal>
           <Reveal delay={0.1} className="relative aspect-[3/4] overflow-hidden bg-[#ebe8e2]">
-            <Image src={img(b.src, 900)} alt={b.alt} fill sizes="30vw" className="object-cover" />
+            <Image src={img(b.src)} alt={b.alt} fill sizes="30vw" className="object-cover" />
           </Reveal>
         </div>
       </div>

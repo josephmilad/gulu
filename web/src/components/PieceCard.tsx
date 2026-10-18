@@ -36,7 +36,7 @@ export default function PieceCard({
       >
         <div className={`relative ${ratio} w-full overflow-hidden bg-[#ebe8e2]`}>
           <Image
-            src={img(image.src, 900)}
+            src={img(image.src)}
             alt={image.alt}
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1280px) 33vw, 25vw"

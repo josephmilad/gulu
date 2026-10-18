@@ -29,7 +29,7 @@ export default async function StylePage({ params }: PageProps<"/styles/[slug]">)
     <>
       <section className="relative h-[70svh] min-h-[480px] overflow-hidden bg-ink">
         <Image
-          src={img(style.cover, 2000, 80)}
+          src={img(style.cover)}
           alt={style.name}
           fill
           priority
