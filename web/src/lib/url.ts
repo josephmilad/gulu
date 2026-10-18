@@ -1,3 +1,4 @@
-export function img(src: string, w: number, q = 75) {
-  return `${src}?w=${w}&q=${q}&auto=format&fit=crop`;
+/** Image sources are local files under public/img; width and quality are handled by next/image. */
+export function img(src: string, _w?: number, _q?: number) {
+  return src;
 }

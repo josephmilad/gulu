@@ -1,6 +1,6 @@
 import type { Style } from "@/lib/types";
 
-const u = (id: string) => `https://images.unsplash.com/photo-${id}`;
+const u = (id: string) => `/img/${id}.jpg`;
 
 export const STYLES: Style[] = [
   {

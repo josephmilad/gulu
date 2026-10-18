@@ -19,7 +19,7 @@ export default function Hero() {
     <section ref={ref} className="relative h-[92svh] min-h-[560px] w-full overflow-hidden bg-ink">
       <motion.div style={{ y: imgY, scale }} className="absolute inset-0">
         <Image
-          src={`${hero.src}?w=2400&q=80&auto=format&fit=crop`}
+          src={hero.src}
           alt={hero.alt}
           fill
           priority
