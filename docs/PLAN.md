@@ -1,4 +1,4 @@
-# Gulu — Launch Plan
+# niche — Launch Plan
 
 A scroll-first discovery site for niche, authentic clothing, shoes and accessories.
 AI finds pieces that are **under-the-radar but highly rated**, scores them against current
@@ -191,3 +191,24 @@ gulu/
 1. Confirm the 3 launch styles and the working name.
 2. I scaffold `apps/web` with the feed + side-panel piece page using placeholder data.
 3. You start the Phase 0 spreadsheet; I write the style rubric docs in `docs/styles/`.
+
+---
+
+## 9. Status (October 2026)
+
+Phase 1 site is built in `web/`: hero, marquee, filterable masonry feed, side-panel / full-screen
+piece pages, style landing pages, about and footer with email capture. Imagery is placeholder
+editorial photography. Next: connect product feeds and the AI curation pipeline (Phase 2).
+
+### Connectors needed for Phase 2
+| Need | Service | Why |
+|---|---|---|
+| LLM for classification, blurbs, QA | Anthropic API key (Claude) | Style tagging, "why it's niche" copy, evidence checking |
+| Product catalogues + affiliate links | Awin, Rakuten Advertising, CJ, or Skimlinks account | Real product data, images with licence to use, tracked outbound links |
+| Evidence gathering | Reddit API, a web search API (Tavily / SerpAPI / Brave) | Recognition signal from forums, reviews, critics |
+| Trend index | Google Trends (no key, via pytrends), optional TikTok Research API | Popularity and trend-direction signals |
+| On-model imagery (optional) | Higgsfield (connector already attached) | Generate consistent house-model shots from flat product images, labelled as AI |
+| Analytics | Plausible or PostHog | Scroll depth, piece opens, outbound click-through |
+| Hosting | Vercel | Deploy `web/`, cron for nightly link/price checks |
+| Email | Resend or Buttondown | Weekly digest from the footer sign-up |
+| Database (Phase 2) | Supabase or Neon Postgres | Pieces, signals, trend snapshots, review queue |
