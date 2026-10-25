@@ -10,7 +10,7 @@ export const PROP_FILES = [
   'concrete_road_barrier', 'dead_tree_trunk', 'wooden_crate_01', 'painted_wooden_bench',
   'water_manhole_cover', 'exterior_aircon_unit',
 ] as const;
-export const TEXTURE_SETS = ['snow_01', 'asphalt_snow', 'concrete_pavement', 'brick_4', 'concrete_wall_006', 'grey_plaster', 'painted_metal_shutter', 'rusty_metal_02'] as const;
+export const TEXTURE_SETS = ['snow_01', 'asphalt_snow', 'concrete_pavement', 'red_brick', 'plastered_wall', 'pine_bark', 'bark_willow', 'painted_metal_shutter', 'rusty_metal_02'] as const;
 
 export interface PbrSet {
   map: THREE.Texture;

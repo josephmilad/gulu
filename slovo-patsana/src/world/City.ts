@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { BoxGrid, type Box } from '../core/collision';
 import { pbrMaterial, type Assets } from '../core/assets';
+import { Facades } from './Facades';
+import { Trees } from './Trees';
 import { mulberry32, pick, range } from '../core/math';
 import {
   garageTex, shopfrontTex, glowTex, iceTex, panelFacade, signTex, type Facade,
@@ -85,6 +87,8 @@ export class City {
   /** Sidewalk corner nodes and their neighbours, for pedestrians. */
   walkNodes: { x: number; z: number; next: number[] }[] = [];
   spawn = { x: 0, z: 0, heading: 0 };
+  /** Street-lamp heads, for the moving real lights. */
+  lampSpots: THREE.Vector3[] = [];
   private inst = new Instancer();
   private rnd = mulberry32(1989);
   private facades: { f: Facade; mat: THREE.Material }[] = [];
@@ -92,8 +96,12 @@ export class City {
   private signs: THREE.Mesh[] = [];
 
   private props = new PropInstancer();
+  facadeKit: Facades;
+  private trees: Trees;
 
   constructor(private assets: Assets) {
+    this.facadeKit = new Facades(assets);
+    this.trees = new Trees(assets);
     this.makeFacades();
     this.ground();
     this.roads();
@@ -102,26 +110,16 @@ export class City {
     this.walkGraph();
     this.inst.build(this.group);
     this.props.build(this.group, assets);
+    this.facadeKit.build(this.group);
+    this.trees.build(this.group);
     this.group.updateMatrixWorld(true);
   }
 
   private makeFacades() {
-    const defs: [string, boolean, boolean][] = [
-      ['#d8d4ca', true, false], // grey panel
-      ['#e6d6b4', true, false], // beige panel
-      ['#ffffff', false, true], // red brick khrushchevka
-      ['#c9d6e2', true, false], // bluish panel
-      ['#f2d49a', false, true], // yellow brick
-    ];
-    const t = this.assets.tex;
-    defs.forEach(([wall, lines, brick], k) => {
-      const img = brick ? t.brick_4.image : k % 2 ? t.grey_plaster.image : t.concrete_wall_006.image;
-      const f = panelFacade(100 + k, wall, lines, brick, img, brick ? 96 : 192);
-      const mat = new THREE.MeshStandardMaterial({
-        map: f.map, emissiveMap: f.emissive, emissive: 0xffe2b0, emissiveIntensity: 2.2, roughness: 0.88,
-      });
-      this.facades.push({ f, mat });
-    });
+    // Only the distant skyline still uses a painted facade.
+    const f = panelFacade(100, '#b9b5aa', true, false);
+    const mat = new THREE.MeshStandardMaterial({ map: f.map, emissiveMap: f.emissive, emissive: 0xffe2b0, emissiveIntensity: 1.6, roughness: 0.9 });
+    this.facades.push({ f, mat });
   }
 
   private addBox(b: Box) {
@@ -129,30 +127,10 @@ export class City {
     this.grid.add(b);
   }
 
-  /** A box building with a window facade sized in real metres. */
+  /** A Soviet apartment block with a real 3D facade (see Facades). */
   building(cx: number, cz: number, w: number, d: number, floors: number, facade: number, entrancesSide: 0 | 1 | -1 = 0) {
-    const { f, mat } = this.facades[facade];
-    const h = floors * f.floorH + 0.8;
-    const geo = new THREE.BoxGeometry(w, h, d);
-    const uv = geo.attributes.uv as THREE.BufferAttribute;
-    const sheetW = f.cols * f.cellW;
-    const sheetH = f.floors * f.floorH;
-    const off = Math.floor(this.rnd() * f.cols) / f.cols;
-    const offV = Math.floor(this.rnd() * 6) / f.floors;
-    for (let face = 0; face < 6; face++) {
-      const faceW = face < 2 ? d : w;
-      for (let v = 0; v < 4; v++) {
-        const i = face * 4 + v;
-        uv.setXY(i, off + uv.getX(i) * (faceW / sheetW), offV + uv.getY(i) * (h / sheetH));
-      }
-    }
-    const mesh = new THREE.Mesh(geo, [mat, mat, this.roofMat, this.roofMat, mat, mat]);
-    mesh.position.set(cx, h / 2, cz);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    this.group.add(mesh);
-    // Roof parapet + snow cap
-    this.inst.add('parapet', new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ color: 0x6d6f73, roughness: 0.9 }), cx, h + 0.15, cz, 0, w + 0.3, 0.3, d + 0.3, false);
+    const style = (['panel', 'panelBeige', 'brick', 'panelBlue', 'brick'] as const)[facade % 5];
+    const h = this.facadeKit.addBuilding({ cx, cz, w, d, floors, style, entrance: entrancesSide, seed: Math.floor(this.rnd() * 1e6) }, this.group);
     this.addBox({ minX: cx - w / 2, maxX: cx + w / 2, minZ: cz - d / 2, maxZ: cz + d / 2, h });
     // Entrances (podyezdy) along one long side, with a canopy and a lamp.
     if (entrancesSide !== 0) {
@@ -206,7 +184,7 @@ export class City {
 
   private roads() {
     const len = N * PITCH + ROAD;
-    const asphaltMat = pbrMaterial(this.assets.tex.asphalt_snow, (ROAD - SIDEWALK * 2) / 4, len / 4, { polygonOffset: true, polygonOffsetFactor: -1 });
+    const asphaltMat = pbrMaterial(this.assets.tex.asphalt_snow, (ROAD - SIDEWALK * 2) / 4, len / 4, { polygonOffset: true, polygonOffsetFactor: -1, roughness: 0.72, envMapIntensity: 1.6 });
     const swMat = pbrMaterial(this.assets.tex.concrete_pavement, SIDEWALK / 2, len / 2);
     for (let k = 0; k <= N; k++) {
       const c = -HALF + k * PITCH;
@@ -233,7 +211,7 @@ export class City {
     }
     // Snowbanks pushed to the kerbs by the ploughs.
     const bankGeo = new THREE.SphereGeometry(1, 8, 5);
-    const bankMat = new THREE.MeshStandardMaterial({ color: 0xe4e9f0, roughness: 1 });
+    const bankMat = pbrMaterial(this.assets.tex.snow_01, 1, 1, { color: 0xf0f3f8 });
     for (let k = 0; k <= N; k++) {
       const c = -HALF + k * PITCH;
       for (let s = -HALF; s < HALF; s += 5 + this.rnd() * 8) {
@@ -282,6 +260,7 @@ export class City {
           const x = vertical ? o : s, z = vertical ? s : o;
           const ry = vertical ? (side > 0 ? -Math.PI / 2 : Math.PI / 2) : side > 0 ? Math.PI : 0;
           this.props.add('street_lamp_01', x, 0, z, ry, 1.8);
+          this.lampSpots.push(new THREE.Vector3(x, 6.2, z));
           this.inst.add('lamp', headGeo, headMat, x, 6.55, z, ry, 0.5, 0.5, 0.5, false);
           this.glow(x, 6.5, z, 3.2, 0xffa040);
           this.pool(x, z, 6.5, 0xff9a40);
@@ -293,31 +272,10 @@ export class City {
 
   private tree(x: number, z: number, birch: boolean) {
     const r = this.rnd;
-    if (birch) {
-      const h = 6 + r() * 4;
-      this.inst.add('birch', new THREE.CylinderGeometry(0.1, 0.17, 1, 6), new THREE.MeshStandardMaterial({ color: 0xe8e4dc, roughness: 0.8 }), x, h / 2, z, r() * 6, 1, h, 1);
-      for (let b = 0; b < 5; b++) {
-        const a = r() * Math.PI * 2;
-        const by = h * (0.45 + r() * 0.45);
-        const bl = 1.2 + r() * 1.8;
-        this.inst.add('branch', new THREE.CylinderGeometry(0.03, 0.06, 1, 4), new THREE.MeshStandardMaterial({ color: 0x3a2e28, roughness: 1 }),
-          x + Math.sin(a) * bl * 0.4, by + bl * 0.35, z + Math.cos(a) * bl * 0.4, a, 1, bl, 1, true, 0.8);
-      }
-      this.addBox({ minX: x - 0.25, maxX: x + 0.25, minZ: z - 0.25, maxZ: z + 0.25, h: h });
-    } else {
-      const s = 0.8 + r() * 0.6;
-      const green = new THREE.MeshStandardMaterial({ color: 0x1f3a2a, roughness: 1 });
-      const snow = new THREE.MeshStandardMaterial({ color: 0xe8eef5, roughness: 1 });
-      const cone = new THREE.ConeGeometry(1, 1, 7);
-      this.inst.add('firTrunk', new THREE.CylinderGeometry(0.12, 0.15, 1.2, 5), new THREE.MeshStandardMaterial({ color: 0x3b2a1e }), x, 0.6 * s, z, 0, s, s, s);
-      for (let l = 0; l < 3; l++) {
-        const y = (1.2 + l * 1.4) * s;
-        const rad = (2.1 - l * 0.55) * s;
-        this.inst.add('firCone', cone, green, x, y + 1.1 * s, z, l, rad, 2.4 * s, rad);
-        this.inst.add('firSnow', cone, snow, x, y + 1.45 * s, z, l, rad * 0.75, 1.6 * s, rad * 0.75, false);
-      }
-      this.addBox({ minX: x - 0.6 * s, maxX: x + 0.6 * s, minZ: z - 0.6 * s, maxZ: z + 0.6 * s, h: 6 * s });
-    }
+    const kind = birch ? (r() < 0.55 ? 'birch' : 'poplar') : 'spruce';
+    this.trees.add(kind, x, z, 0.85 + r() * 0.35, r() * 6.28, Math.floor(r() * 3));
+    const rad = kind === 'spruce' ? 0.6 : 0.3;
+    this.addBox({ minX: x - rad, maxX: x + rad, minZ: z - rad, maxZ: z + rad, h: 8 });
   }
 
   private bench(x: number, z: number, ry: number) {

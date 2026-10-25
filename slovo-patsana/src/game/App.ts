@@ -5,6 +5,7 @@ import {
 } from 'postprocessing';
 import { N8AOPostPass } from 'n8ao';
 import { Input } from '../core/input';
+import { GradeEffect } from '../render/GradeEffect';
 import { City } from '../world/City';
 import { Environment } from '../world/Environment';
 import { CHARACTERS } from '../actors/characters';
@@ -69,13 +70,14 @@ export class App {
     this.aoPass.setQualityMode('Medium');
     this.composer.addPass(this.aoPass);
     const bloom = new BloomEffect({ intensity: 1.1, luminanceThreshold: 0.75, luminanceSmoothing: 0.2, mipmapBlur: true, radius: 0.75 });
-    const grade = new HueSaturationEffect({ saturation: -0.12, hue: 0 });
-    const contrast = new BrightnessContrastEffect({ brightness: 0, contrast: 0.08 });
+    const sat = new HueSaturationEffect({ saturation: -0.06, hue: 0 });
+    const contrast = new BrightnessContrastEffect({ brightness: 0.02, contrast: 0.05 });
     const tone = new ToneMappingEffect({ mode: ToneMappingMode.AGX });
-    const vignette = new VignetteEffect({ offset: 0.3, darkness: 0.55 });
+    const grade = new GradeEffect();
+    const vignette = new VignetteEffect({ offset: 0.32, darkness: 0.5 });
     const grain = new NoiseEffect({ blendFunction: BlendFunction.OVERLAY, premultiply: true });
-    grain.blendMode.opacity.value = 0.18;
-    this.composer.addPass(new EffectPass(new THREE.PerspectiveCamera(), bloom, grade, contrast, tone, vignette, grain));
+    grain.blendMode.opacity.value = 0.1;
+    this.composer.addPass(new EffectPass(new THREE.PerspectiveCamera(), bloom, sat, contrast, tone, grade, vignette, grain));
     this.composer.addPass(new EffectPass(new THREE.PerspectiveCamera(), new SMAAEffect()));
     this.applyQuality();
 
@@ -103,6 +105,7 @@ export class App {
 
   private applyQuality() {
     this.aoPass.enabled = this.quality === 'high';
+    if (this.world) this.world.env.lampBudget = this.quality === 'high' ? 10 : this.quality === 'medium' ? 5 : 2;
     this.renderPass.renderToScreen = false;
     const sz = this.quality === 'low' ? 1024 : this.quality === 'medium' ? 2048 : 4096;
     if (this.world) {
@@ -121,6 +124,7 @@ export class App {
       const city = new City(this.assets);
       scene.add(city.group);
       const env = new Environment(scene, this.envMap);
+      env.setLampSpots(city.lampSpots, scene);
       this.world = { scene, city, env };
       this.applyQuality();
     }

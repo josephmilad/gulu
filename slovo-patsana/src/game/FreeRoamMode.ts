@@ -354,6 +354,15 @@ export class FreeRoamMode implements Mode, Arena, AIWorld {
     };
     mk('Продолжить', () => this.pause(false)).classList.add('active');
     if (!controls) mk('Управление', () => this.pause(true, true));
+    if (!controls) {
+      const names = { high: 'высокая', medium: 'средняя', low: 'низкая' } as const;
+      const order = ['high', 'medium', 'low'] as const;
+      const b = mk(`Графика: ${names[this.app.quality]}`, () => {
+        const next = order[(order.indexOf(this.app.quality) + 1) % 3];
+        this.app.setQuality(next);
+        b.innerHTML = `Графика: ${names[next]}`;
+      });
+    }
     mk('Главное меню', () => this.onQuit());
     o.append(list);
     uiRoot().append(o);
@@ -466,6 +475,7 @@ export class FreeRoamMode implements Mode, Arena, AIWorld {
     this.fill.position.set(p.x + (cp.x - p.x) * 0.4, 3, p.z + (cp.z - p.z) * 0.4);
     this.focus.set(p.x, 0, p.z);
     this.app.getWorld().env.update(dt, this.focus);
+    this.city.facadeKit.update(this.time);
     this.hud.update(dt, this.camera, this.players, this.fighters.filter((f) => !this.players.includes(f)), this.cam.yaw, [ATTACKS[p.special ?? 'flurry'].stamina]);
   }
 

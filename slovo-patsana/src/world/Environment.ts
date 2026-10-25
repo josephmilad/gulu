@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { makeSky } from './Sky';
 
 /** Winter night: sky gradient, fog, moonlight with a shadow box that follows the action, snowfall. */
 export class Environment {
@@ -7,25 +8,19 @@ export class Environment {
   private snowVel: Float32Array;
   private readonly box = { x: 70, y: 36, z: 70 };
   wind = new THREE.Vector2(0.8, 0.3);
+  sky: THREE.Mesh;
+  /** Real point lights that hop between the street lamps nearest the player. */
+  private lamps: THREE.PointLight[] = [];
+  private lampSpots: THREE.Vector3[] = [];
+  private lampT = 0;
+  /** How many real lamp lights are lit (graphics quality). */
+  lampBudget = 10;
 
   constructor(scene: THREE.Scene, envMap?: THREE.Texture) {
-    const c = document.createElement('canvas');
-    c.width = 4;
-    c.height = 256;
-    const g = c.getContext('2d')!;
-    const gr = g.createLinearGradient(0, 0, 0, 256);
-    gr.addColorStop(0, '#05070f');
-    gr.addColorStop(0.45, '#141b33');
-    gr.addColorStop(0.62, '#2d3152');
-    gr.addColorStop(0.72, '#4a3d55');
-    gr.addColorStop(1, '#1a1c28');
-    g.fillStyle = gr;
-    g.fillRect(0, 0, 4, 256);
-    const sky = new THREE.CanvasTexture(c);
-    sky.colorSpace = THREE.SRGBColorSpace;
-    sky.mapping = THREE.EquirectangularReflectionMapping;
-    scene.background = sky;
-    scene.fog = new THREE.Fog(0x232a40, 25, 230);
+    scene.background = new THREE.Color(0x0b0f1c);
+    scene.fog = new THREE.Fog(0x2a2733, 30, 260);
+    this.sky = makeSky();
+    scene.add(this.sky);
 
     if (envMap) {
       // Image-based light from a real snowy night courtyard (Poly Haven, CC0).
@@ -46,12 +41,6 @@ export class Environment {
     sun.shadow.normalBias = 0.04;
     scene.add(sun, sun.target);
     this.sun = sun;
-
-    // Moon
-    const moon = new THREE.Mesh(new THREE.CircleGeometry(9, 24), new THREE.MeshBasicMaterial({ color: 0xf2f0e0, fog: false }));
-    moon.position.set(-260, 210, -380);
-    moon.lookAt(0, 0, 0);
-    scene.add(moon);
 
     const n = 5000;
     const pos = new Float32Array(n * 3);
@@ -79,9 +68,32 @@ export class Environment {
     scene.add(this.snow);
   }
 
+  setLampSpots(spots: THREE.Vector3[], scene: THREE.Scene) {
+    this.lampSpots = spots;
+    for (let i = 0; i < 10; i++) {
+      const l = new THREE.PointLight(0xffb060, 0, 26, 1.6);
+      this.lamps.push(l);
+      scene.add(l);
+    }
+  }
+
   private t = 0;
   update(dt: number, focus: THREE.Vector3) {
     this.t += dt;
+    this.sky.position.copy(focus);
+    ((this.sky.material as THREE.ShaderMaterial).uniforms.uTime as { value: number }).value = this.t;
+    this.lampT -= dt;
+    if (this.lampT <= 0 && this.lampSpots.length) {
+      this.lampT = 0.3;
+      const near = this.lampSpots
+        .map((p) => [p, (p.x - focus.x) ** 2 + (p.z - focus.z) ** 2] as const)
+        .sort((a, b) => a[1] - b[1])
+        .slice(0, this.lamps.length);
+      near.forEach(([p], i) => {
+        this.lamps[i].position.copy(p);
+        this.lamps[i].intensity = i < this.lampBudget ? 55 : 0;
+      });
+    }
     this.sun.position.set(focus.x + 40, 90, focus.z + 30);
     this.sun.target.position.set(focus.x, 0, focus.z);
     const p = this.snow.geometry.attributes.position as THREE.BufferAttribute;
