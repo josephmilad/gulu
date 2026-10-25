@@ -5,7 +5,9 @@ import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 const BASE = import.meta.env.BASE_URL + 'assets/';
 
 export const CHARACTER_FILES = ['vova', 'palto', 'kashchey'] as const;
+export const VEHICLE_FILES = ['zhiguli', 'zhiguli_police', 'volga', 'uaz'] as const;
 export const PROP_FILES = [
+  'bus_stop', 'kiosk',
   'street_lamp_01', 'metal_trash_can', 'utility_box_01', 'covered_car', 'old_tyre', 'trashbag',
   'concrete_road_barrier', 'dead_tree_trunk', 'wooden_crate_01', 'painted_wooden_bench',
   'water_manhole_cover', 'exterior_aircon_unit',
@@ -25,6 +27,7 @@ export interface Assets {
   /** Decimated, smaller-texture versions used for crowds. */
   charactersLod: Record<string, GLTF>;
   props: Record<string, THREE.Object3D>;
+  vehicles: Record<string, GLTF>;
   tex: Record<string, PbrSet>;
   hdr: THREE.DataTexture;
 }
@@ -36,7 +39,7 @@ export async function loadAssets(onProgress: (p: number, label: string) => void)
   const imgLoader = new THREE.ImageLoader();
   let done = 0;
   const jobs: Promise<unknown>[] = [];
-  const total = CHARACTER_FILES.length * 2 + PROP_FILES.length + TEXTURE_SETS.length * 3 + 1;
+  const total = CHARACTER_FILES.length * 2 + VEHICLE_FILES.length + PROP_FILES.length + TEXTURE_SETS.length * 3 + 1;
   const tick = (label: string) => onProgress(++done / total, label);
   const track = <T>(p: Promise<T>, label: string) => {
     const q = p.then((v) => {
@@ -47,7 +50,8 @@ export async function loadAssets(onProgress: (p: number, label: string) => void)
     return q;
   };
 
-  const a: Assets = { characters: {}, charactersLod: {}, props: {}, tex: {}, hdr: null as unknown as THREE.DataTexture };
+  const a: Assets = { characters: {}, charactersLod: {}, props: {}, vehicles: {}, tex: {}, hdr: null as unknown as THREE.DataTexture };
+  for (const v of VEHICLE_FILES) track(gltf.loadAsync(`${BASE}vehicles/${v}.glb`), 'машины').then((g) => (a.vehicles[v] = g));
   for (const c of CHARACTER_FILES) {
     track(gltf.loadAsync(`${BASE}characters/${c}.glb`), 'персонажи').then((g) => (a.characters[c] = g));
     track(gltf.loadAsync(`${BASE}characters/${c}_lod.glb`), 'прохожие').then((g) => (a.charactersLod[c] = g));

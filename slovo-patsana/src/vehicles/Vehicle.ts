@@ -33,6 +33,7 @@ const TUNING: Record<CarKind, Tuning> = {
   zhiguli: { engine: 7.5, brake: 16, maxSpeed: 40, reverseMax: 8, drag: 0.08, rolling: 1.6, turnRate: 2.2, gripSpeed: 6, grip: 5.5, gripHandbrake: 0.7, mass: 1 },
   volga: { engine: 7, brake: 15, maxSpeed: 42, reverseMax: 8, drag: 0.07, rolling: 1.6, turnRate: 1.9, gripSpeed: 7, grip: 5, gripHandbrake: 0.7, mass: 1.3 },
   taxi: { engine: 7, brake: 15, maxSpeed: 42, reverseMax: 8, drag: 0.07, rolling: 1.6, turnRate: 1.9, gripSpeed: 7, grip: 5, gripHandbrake: 0.7, mass: 1.3 },
+  police: { engine: 8, brake: 16, maxSpeed: 44, reverseMax: 8, drag: 0.08, rolling: 1.6, turnRate: 2.25, gripSpeed: 6, grip: 5.8, gripHandbrake: 0.7, mass: 1 },
   uaz: { engine: 7.8, brake: 15, maxSpeed: 36, reverseMax: 8, drag: 0.09, rolling: 1.8, turnRate: 2.0, gripSpeed: 6, grip: 6, gripHandbrake: 1, mass: 1.6 },
 };
 
@@ -239,6 +240,6 @@ export class Vehicle {
     const body = r.children[0];
     body.rotation.z = clamp(-lat * 0.012, -0.06, 0.06);
     for (const w of this.vis.wheels) w.rotation.x = this.wheelSpin;
-    for (const s of this.vis.steer) s.rotation.y = this.steerVis;
+    for (const s of this.vis.steer) s.rotation.y = this.steerVis * 0.8;
   }
 }

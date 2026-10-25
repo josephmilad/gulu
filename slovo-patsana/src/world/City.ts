@@ -107,6 +107,7 @@ export class City {
     this.roads();
     for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) this.block(i, j);
     this.lights();
+    this.busStops();
     this.walkGraph();
     this.inst.build(this.group);
     this.props.build(this.group, assets);
@@ -223,6 +224,32 @@ export class City {
         else this.inst.add('bank', bankGeo, bankMat, s, 0, o, 0, sl, 0.45, sx, false);
       }
     }
+  }
+
+  /** Soviet bus stops on the pavements, some with a kiosk beside them. */
+  private busStops() {
+    const r = this.rnd;
+    for (let k = 1; k < N; k++)
+      for (let seg = 0; seg < N; seg++) {
+        if (r() < 0.6) continue;
+        const vertical = r() < 0.5;
+        const side = r() < 0.5 ? 1 : -1;
+        const along = -HALF + seg * PITCH + PITCH / 2 + (r() - 0.5) * 16;
+        const off = -HALF + k * PITCH + side * (ROAD / 2 - SIDEWALK / 2 + 0.3);
+        const x = vertical ? off : along, z = vertical ? along : off;
+        // The open side faces the road.
+        const ry = vertical ? (side > 0 ? -Math.PI / 2 : Math.PI / 2) : side > 0 ? Math.PI : 0;
+        this.props.add('bus_stop', x, 0.14, z, ry, 1);
+        const lx = vertical ? 0.9 : 1.9, lz = vertical ? 1.9 : 0.9;
+        this.addBox({ minX: x - lx, maxX: x + lx, minZ: z - lz, maxZ: z + lz, h: 2.6 });
+        if (r() < 0.5) {
+          const ka = along + 4.6;
+          const kx = vertical ? off + side * 0.2 : ka, kz = vertical ? ka : off + side * 0.2;
+          this.props.add('kiosk', kx, 0.14, kz, ry, 0.85);
+          const kl = 1.3;
+          this.addBox({ minX: kx - kl, maxX: kx + kl, minZ: kz - kl, maxZ: kz + kl, h: 2.6 });
+        }
+      }
   }
 
   private glow(x: number, y: number, z: number, size: number, color: number) {
@@ -437,10 +464,7 @@ export class City {
     this.pool(cx - 14, cz + 5, 6, 0x6a90d0);
     this.pool(cx + 14, cz + 5, 6, 0x6a90d0);
     // Kiosk "Soyuzpechat" and some trees around the parking lot
-    const kiosk = new THREE.Mesh(new THREE.BoxGeometry(3, 2.6, 2.4), new THREE.MeshStandardMaterial({ color: 0x3a7ac2, roughness: 0.6 }));
-    kiosk.position.set(cx + 24, 1.3, cz + 20);
-    kiosk.castShadow = true;
-    this.group.add(kiosk);
+    this.props.add('kiosk', cx + 24, 0, cz + 20, 0, 1);
     this.addBox({ minX: cx + 22.5, maxX: cx + 25.5, minZ: cz + 18.8, maxZ: cz + 21.2, h: 2.6 });
     this.sign('СОЮЗПЕЧАТЬ', cx + 24, 2.9, cz + 21.3, 3, 0.55, 0, '#ffffff', '#1a4f99');
     for (let k = 0; k < 6; k++) this.tree(cx - 28 + k * 11, cz + 28, true);

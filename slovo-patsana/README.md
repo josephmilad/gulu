@@ -65,9 +65,8 @@ You need Node 18 or newer and a browser with WebGL (Chrome, Edge or Firefox).
 
 ## Cars and militsiya (step 3)
 
-- **Cars:** VAZ-2106 «Жигули», GAZ-24 «Волга», a Volga taxi and the militsiya UAZ-469, all modelled in code
-  (`src/vehicles/CarModel.ts`). They have clear-coat paint, chrome, quad headlights, brake lights and Soviet
-  «а 12-34 ТА» plates. Parked cars wear a cap of snow.
+- **Cars:** LADA 2107, GAZ-24 «Волга», a Volga taxi, UAZ-469 and a militsiya VAZ-2106. These are realistic
+  Sketchfab models (credits below).
 - **Driving:** arcade physics with a handbrake slide, adapted from gta7 (MIT). Grip is reduced for the snow.
   The player's car has working headlights and engine sound. Cars crash into walls and each other, and knock
   people down.
@@ -90,6 +89,20 @@ You need Node 18 or newer and a browser with WebGL (Chrome, Edge or Firefox).
   tyres, crates…). `tools/optimize_props.py` decimates the props to game budgets.
 - **Rendering:** [postprocessing](https://github.com/pmndrs/postprocessing) for bloom, AgX tone mapping, SMAA,
   vignette and film grain, plus [N8AO](https://github.com/N8python/n8ao) ambient occlusion.
+
+## Realistic vehicles and street furniture
+
+The cars, the bus stops and the kiosks are 3D models from Sketchfab under CC BY (attribution):
+- Old Soviet Bus Stop by Coozy (https://sketchfab.com/3d-models/old-soviet-bus-stop-fe4d132434c24e1c8447a6d1190e8c6d), CC Attribution
+- Soviet Kiosk – 3D Model by dimmeyster (https://sketchfab.com/3d-models/soviet-kiosk-3d-model-3b85ae768ecd43f394991a1f0027c72c), CC Attribution
+- U469 by buh (https://sketchfab.com/3d-models/u469-b5a9f983a5a143f2a6994e083ef2b867), CC Attribution
+- GAZ 24 Volga by maxdragonn (https://sketchfab.com/3d-models/gaz-24-volga-19074d0e6287462ea5e2be3e0a115665), CC Attribution
+- LADA 2107 by tiunov.se (https://sketchfab.com/3d-models/lada-2107-31201f80892b404a8e49c272490a664c), CC Attribution
+- VAZ-2106 Police by CGMeller (https://sketchfab.com/3d-models/vaz-2106-police-3eba9b129f214615b2ff24fdc857d5c9), CC Attribution
+
+`tools/sketchfab_fetch.py` downloads and decimates them. `tools/prep_car.py` strips scenery, turns each car
+to face +Z, scales it, splits out the wheels so they can spin and steer, and merges the body by material.
+A shader recolours the paint so every Zhiguli or Volga on the street is a different 80s colour.
 
 ## Credits and references
 

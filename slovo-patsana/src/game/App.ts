@@ -10,6 +10,7 @@ import { City } from '../world/City';
 import { Environment } from '../world/Environment';
 import { CHARACTERS } from '../actors/characters';
 import { makeBody } from '../actors/SkinnedBody';
+import { setCarModels } from '../vehicles/CarModel';
 import type { Assets } from '../core/assets';
 
 export interface Mode {
@@ -54,6 +55,7 @@ export class App {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.input = new Input(canvas);
+    setCarModels(assets.vehicles);
 
     const pm = new THREE.PMREMGenerator(this.renderer);
     this.envMap = pm.fromEquirectangular(assets.hdr).texture;
