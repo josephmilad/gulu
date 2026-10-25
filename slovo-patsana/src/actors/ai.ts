@@ -148,7 +148,7 @@ export class Brain {
       return;
     }
     for (const o of w.fighters) {
-      if (!this.hostileTo(o) || o.grounded || o.data.inCar) continue;
+      if (o === f || !this.hostileTo(o) || o.grounded || o.data.inCar) continue;
       const d = dist(o, f);
       if (this.role === 'gang') {
         const zone = zoneAt(o.x, o.z);

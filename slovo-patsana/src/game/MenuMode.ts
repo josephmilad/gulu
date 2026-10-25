@@ -25,13 +25,14 @@ export class MenuMode implements Mode {
   private focus = new THREE.Vector3();
   private keyHandler = (e: KeyboardEvent) => this.onKey(e);
 
-  constructor(private app: App, private onPlay: (players: 1 | 2, mode: 'free' | 'versus') => void, alreadyStarted = false) {
+  constructor(private app: App, private onPlay: (players: 1 | 2, mode: 'free' | 'versus' | 'cpu') => void, alreadyStarted = false) {
     const w = app.getWorld();
     this.scene = w.scene;
     this.started = alreadyStarted;
     this.items = [
       { label: 'Свободная игра', note: 'район, драки, авторитет', action: () => this.onPlay(1, 'free') },
-      { label: 'Стенка на стенку', note: 'скоро · 1 на 1, двое игроков', disabled: true, action: () => {} },
+      { label: 'Стенка на стенку: против компьютера', note: '1 на 1, каток', action: () => this.onPlay(1, 'cpu') },
+      { label: 'Стенка на стенку: два игрока', note: 'одна клавиатура или геймпады', action: () => this.onPlay(2, 'versus') },
       { label: 'Сюжет', note: 'скоро · миссии', disabled: true, action: () => {} },
       { label: 'Управление', action: () => this.showControls() },
     ];
