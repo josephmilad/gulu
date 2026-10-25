@@ -90,18 +90,40 @@ You need Node 18 or newer and a browser with WebGL (Chrome, Edge or Firefox).
 - **Rendering:** [postprocessing](https://github.com/pmndrs/postprocessing) for bloom, AgX tone mapping, SMAA,
   vignette and film grain, plus [N8AO](https://github.com/N8python/n8ao) ambient occlusion.
 
-## Realistic vehicles and street furniture
+## Realistic vehicles, street furniture and passers-by
 
-The cars, the bus stops and the kiosks are 3D models from Sketchfab under CC BY (attribution):
+The cars, the ZiL truck, the bus stops, the kiosks, the Soviet street lights, benches, bins, the
+playgrounds (rocket climbing frame and seesaw), the kvass barrel, the garages and the photoscanned
+passers-by are 3D models from Sketchfab under CC BY (attribution):
+- Carla Rigged 001 - Rigged 3D Business Women by Renderpeople (https://sketchfab.com/3d-models/carla-rigged-001-rigged-3d-business-women-acf520f450d14dd799f98a6fede3edf5), CC Attribution
+- Claudia Rigged 002 - 3D Rigged Business Women by Renderpeople (https://sketchfab.com/3d-models/claudia-rigged-002-3d-rigged-business-women-c659bd0accab47c6bbe390cf822a2b92), CC Attribution
+- Eric Rigged 001 - Rigged 3D Business Man by Renderpeople (https://sketchfab.com/3d-models/eric-rigged-001-rigged-3d-business-man-a46bc9f67aaa415bb4f3241eef900e7f), CC Attribution
+- Nathan Animated 003 - Walking 3D Man by Renderpeople (https://sketchfab.com/3d-models/nathan-animated-003-walking-3d-man-143a2b1ea5eb4385ae90a73657aca3bc), CC Attribution
+- old man in coat - human riged model by Kasit Studio (https://sketchfab.com/3d-models/old-man-in-coat-human-riged-model-e8052f5928ef42f1ae5b5af02eb1a36b), CC Attribution
+- Sophia Animated 003 - Animated 3D Woman by Renderpeople (https://sketchfab.com/3d-models/sophia-animated-003-animated-3d-woman-dc448c3be0e74f96a55fb475a13433cf), CC Attribution
 - Old Soviet Bus Stop by Coozy (https://sketchfab.com/3d-models/old-soviet-bus-stop-fe4d132434c24e1c8447a6d1190e8c6d), CC Attribution
+- Abandoned Soviet Garages Pack Game-Ready by olegolegperepelica (https://sketchfab.com/3d-models/abandoned-soviet-garages-pack-game-ready-fcf453872c2d4cfbad12197d072fbfc4), CC Attribution
 - Soviet Kiosk – 3D Model by dimmeyster (https://sketchfab.com/3d-models/soviet-kiosk-3d-model-3b85ae768ecd43f394991a1f0027c72c), CC Attribution
+- Kvass Barrel by barracudazp (https://sketchfab.com/3d-models/kvass-barrel-c4958926b88c4b918d0a902f0628b6c7), CC Attribution
+- Soviet Rocket Play Scape by Occam (https://sketchfab.com/3d-models/soviet-rocket-play-scape-9885be3845fa4b488fae42b122fd59d0), CC Attribution
+- Seesaw "Type-1" by targa (https://sketchfab.com/3d-models/seesaw-type-1-9855438bf7d14f9b8a83e779c03e937f), CC Attribution
+- Old Soviet Bench Rework by MrUnity (https://sketchfab.com/3d-models/old-soviet-bench-rework-ec973b24addb4e738486f4d3fb6d2eb8), CC Attribution
+- Old Soviet Trash Can by Unka II (https://sketchfab.com/3d-models/old-soviet-trash-can-a2ebe6f94ecb43e19d45e1ac7376672b), CC Attribution
+- Soviet Streetlight Pack by Unka II (https://sketchfab.com/3d-models/soviet-streetlight-pack-209fb45b77434af4b6830ff4da7d58b2), CC Attribution
 - U469 by buh (https://sketchfab.com/3d-models/u469-b5a9f983a5a143f2a6994e083ef2b867), CC Attribution
 - GAZ 24 Volga by maxdragonn (https://sketchfab.com/3d-models/gaz-24-volga-19074d0e6287462ea5e2be3e0a115665), CC Attribution
 - LADA 2107 by tiunov.se (https://sketchfab.com/3d-models/lada-2107-31201f80892b404a8e49c272490a664c), CC Attribution
 - VAZ-2106 Police by CGMeller (https://sketchfab.com/3d-models/vaz-2106-police-3eba9b129f214615b2ff24fdc857d5c9), CC Attribution
+- ZIL 130 (body) / Lowpoly by romunql (https://sketchfab.com/3d-models/zil-130-body-lowpoly-48c2d4c7691c411396a0c22aca853518), CC Attribution
 
-`tools/sketchfab_fetch.py` downloads and decimates them. `tools/prep_car.py` strips scenery, turns each car
-to face +Z, scales it, splits out the wheels so they can spin and steer, and merges the body by material.
+Tools:
+- `tools/sketchfab_fetch.py` downloads and decimates a model.
+- `tools/prep_car.py` strips scenery, turns a car to face +Z, scales it, splits out the wheels so they spin
+  and steer, and merges the body by material.
+- `tools/split_pack.py` splits a pack (e.g. three street lights) into single props.
+- `tools/retarget.py` bakes the Quaternius animations onto any humanoid rig. It recognises Meshy, Mixamo,
+  RenderPeople, Unreal and Reallusion bone names, converts centimetre rigs and normalises height.
+
 A shader recolours the paint so every Zhiguli or Volga on the street is a different 80s colour.
 
 ## Credits and references

@@ -2,6 +2,9 @@ import { pick } from '../core/math';
 
 export interface BodySpec {
   model: string;
+  /** Use the photoscanned passer-by models instead of the hero models. */
+  npc?: boolean;
+  female?: boolean;
   tint?: number;
   tintAmt?: number;
   scale: number;
@@ -23,8 +26,8 @@ export function gangSpec(team: 'universam' | 'razezd' | 'hadi', r = Math.random)
 }
 
 export function civilSpec(r = Math.random): BodySpec {
-  const tints = [0x4a3a30, 0x2d3a4a, 0x5a2a2a, 0x3a3a3a, 0x6a5a40, 0x2a4a3a, 0x7a6a5a, 0x5a3048];
-  return { model: pick(r, ['palto', 'palto', 'kashchey']), tint: pick(r, tints), tintAmt: 0.85, scale: 0.92 + r() * 0.12 };
+  const model = pick(r, ['eric', 'carla', 'claudia', 'nathan', 'sophia', 'oldcoat', 'oldcoat'] as const);
+  return { model, npc: true, female: ['carla', 'claudia', 'sophia'].includes(model), scale: 0.96 + r() * 0.06 };
 }
 
 /** Militsiya in winter greatcoats and fur hats. */

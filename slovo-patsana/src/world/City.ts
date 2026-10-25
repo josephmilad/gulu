@@ -5,7 +5,7 @@ import { Facades } from './Facades';
 import { Trees } from './Trees';
 import { mulberry32, pick, range } from '../core/math';
 import {
-  garageTex, shopfrontTex, glowTex, iceTex, panelFacade, signTex, type Facade,
+  shopfrontTex, glowTex, iceTex, panelFacade, signTex, type Facade,
 } from './textures';
 
 export type Zone = 'universam' | 'razezd' | 'hadi';
@@ -276,8 +276,6 @@ export class City {
   private quad = new THREE.PlaneGeometry(1, 1);
 
   private lights() {
-    const headGeo = new THREE.BoxGeometry(0.4, 0.18, 0.7);
-    const headMat = new THREE.MeshBasicMaterial({ color: 0xffd090, toneMapped: false });
     for (let k = 0; k <= N; k++) {
       const c = -HALF + k * PITCH;
       for (let s = -HALF + 12; s < HALF; s += 26) {
@@ -285,12 +283,13 @@ export class City {
           const side = (Math.floor(s / 26) + k) % 2 ? 1 : -1;
           const o = c + side * (ROAD / 2 - 0.7);
           const x = vertical ? o : s, z = vertical ? s : o;
-          const ry = vertical ? (side > 0 ? -Math.PI / 2 : Math.PI / 2) : side > 0 ? Math.PI : 0;
-          this.props.add('street_lamp_01', x, 0, z, ry, 1.8);
-          this.lampSpots.push(new THREE.Vector3(x, 6.2, z));
-          this.inst.add('lamp', headGeo, headMat, x, 6.55, z, ry, 0.5, 0.5, 0.5, false);
-          this.glow(x, 6.5, z, 3.2, 0xffa040);
-          this.pool(x, z, 6.5, 0xff9a40);
+          // Local -Z of the lamp model points from the pole out over the road.
+          const lr = vertical ? side * Math.PI / 2 : side > 0 ? 0 : Math.PI;
+          this.props.add('sov_lamp', x, 0, z, lr, 1);
+          const hx = x - Math.sin(lr) * 5.3, hz = z - Math.cos(lr) * 5.3;
+          this.lampSpots.push(new THREE.Vector3(hx, 6.3, hz));
+          this.glow(hx, 6.45, hz, 3, 0xffa040);
+          this.pool(hx, hz, 7, 0xff9a40);
           this.addBox({ minX: x - 0.15, maxX: x + 0.15, minZ: z - 0.15, maxZ: z + 0.15, h: 7.5 });
         }
       }
@@ -306,7 +305,8 @@ export class City {
   }
 
   private bench(x: number, z: number, ry: number) {
-    this.props.add('painted_wooden_bench', x, 0, z, ry + Math.PI, 1.5);
+    this.props.add('sov_bench', x, 0, z, ry + Math.PI / 2, 1);
+    this.props.add('sov_bin', x + Math.cos(ry) * 1.4, 0, z - Math.sin(ry) * 1.4, 0, 0.75);
     this.addBox({ minX: x - 0.9, maxX: x + 0.9, minZ: z - 0.9, maxZ: z + 0.9, h: 0.9 });
   }
 
@@ -342,26 +342,17 @@ export class City {
   }
 
   private playground(x: number, z: number) {
-    const metal = new THREE.MeshStandardMaterial({ color: 0xc23a2a, roughness: 0.5, metalness: 0.3 });
-    const blue = new THREE.MeshStandardMaterial({ color: 0x2a5ac2, roughness: 0.5, metalness: 0.3 });
-    // Swing frame
-    for (const s of [-1, 1]) {
-      this.inst.add('swingLeg', new THREE.CylinderGeometry(0.05, 0.05, 2.6, 5), metal, x + s * 1.3, 1.25, z - 0.5, 0, 1, 1, 1, true, 0.35);
-      this.inst.add('swingLeg', new THREE.CylinderGeometry(0.05, 0.05, 2.6, 5), metal, x + s * 1.3, 1.25, z + 0.5, 0, 1, 1, 1, true, -0.35);
-    }
-    this.inst.add('swingTop', new THREE.CylinderGeometry(0.05, 0.05, 2.8, 5), metal, x, 2.45, z, 0, 1, 1, 1, true, 0, Math.PI / 2);
-    this.inst.add('swingSeat', new THREE.BoxGeometry(0.6, 0.05, 0.3), blue, x, 0.6, z);
-    // Slide (gorka) and a snowman
-    this.inst.add('slide', new THREE.BoxGeometry(0.9, 0.08, 4), blue, x + 4, 1.2, z, 0, 1, 1, 1, true, 0.55);
-    this.inst.add('slideTower', new THREE.BoxGeometry(1, 2.2, 1), metal, x + 4, 1.1, z - 2.2);
+    const r = this.rnd;
+    this.props.add('rocket', x + 1, 0, z, r() < 0.5 ? 0 : Math.PI, 1);
+    this.addBox({ minX: x - 2.6, maxX: x + 4.6, minZ: z - 0.9, maxZ: z + 0.9, h: 4.7 });
+    this.props.add('seesaw', x - 1, 0, z + 4, Math.PI / 2 * Math.round(r()), 1);
+    this.addBox({ minX: x - 2.6, maxX: x + 0.6, minZ: z + 3.4, maxZ: z + 4.6, h: 1.8 });
     const snow = this.roofMat;
     const ball = new THREE.SphereGeometry(1, 10, 8);
     this.inst.add('snowman', ball, snow, x - 4, 0.45, z + 1, 0, 0.55, 0.5, 0.55);
     this.inst.add('snowman', ball, snow, x - 4, 1.15, z + 1, 0, 0.4, 0.38, 0.4);
     this.inst.add('snowman', ball, snow, x - 4, 1.65, z + 1, 0, 0.27, 0.27, 0.27);
     this.inst.add('carrot', new THREE.ConeGeometry(0.04, 0.25, 5), new THREE.MeshStandardMaterial({ color: 0xe06a1a }), x - 4, 1.65, z + 1.32, 0, 1, 1, 1, false, Math.PI / 2);
-    this.addBox({ minX: x - 1.5, maxX: x + 1.5, minZ: z - 0.8, maxZ: z + 0.8, h: 2.5 });
-    this.addBox({ minX: x + 3.4, maxX: x + 4.6, minZ: z - 2.8, maxZ: z + 2, h: 2.2 });
   }
 
   private sign(text: string, x: number, y: number, z: number, w: number, h: number, ry: number, fg: string, bg = 'rgba(10,10,14,1)') {
@@ -377,21 +368,21 @@ export class City {
     this.group.add(back);
   }
 
+  /** A row of rusty Soviet lock-up garages (a scanned pack, ~16.5 m long each). */
   private garages(x0: number, z0: number, count: number, along: 'x' | 'z', faceDir: 1 | -1) {
-    const tex = garageTex();
-    const front = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9 });
-    const wall = new THREE.MeshStandardMaterial({ color: 0x6b6f68, roughness: 0.95 });
-    const geo = new THREE.BoxGeometry(3.4, 2.6, 6);
-    for (let k = 0; k < count; k++) {
-      const x = along === 'x' ? x0 + k * 3.5 : x0;
-      const z = along === 'z' ? z0 + k * 3.5 : z0;
-      const ry = along === 'x' ? (faceDir > 0 ? 0 : Math.PI) : faceDir > 0 ? Math.PI / 2 : -Math.PI / 2;
-      // Material index 4 (+Z face) gets the door; we rotate the box to face the yard.
-      this.inst.add('garage', geo, [wall, wall, this.roofMat, wall, front, wall] as unknown as THREE.Material, x, 1.3, z, ry);
-    }
     const len = count * 3.5;
-    if (along === 'x') this.addBox({ minX: x0 - 1.75, maxX: x0 - 1.75 + len, minZ: z0 - 3, maxZ: z0 + 3, h: 2.6 });
-    else this.addBox({ minX: x0 - 3, maxX: x0 + 3, minZ: z0 - 1.75, maxZ: z0 - 1.75 + len, h: 2.6 });
+    const n = Math.max(1, Math.round(len / 16.56));
+    const PL = 16.56, PD = 7.12;
+    for (let k = 0; k < n; k++) {
+      const t = -1.75 + PL * (k + 0.5);
+      const x = along === 'x' ? x0 + t : x0, z = along === 'z' ? z0 + t : z0;
+      // The pack's long side runs along z; turn it for rows along x.
+      const ry = (along === 'x' ? Math.PI / 2 : 0) + (faceDir > 0 ? 0 : Math.PI);
+      this.props.add('garages', x, 0, z, ry, 1);
+    }
+    const span = n * PL;
+    if (along === 'x') this.addBox({ minX: x0 - 1.75, maxX: x0 - 1.75 + span, minZ: z0 - PD / 2, maxZ: z0 + PD / 2, h: 2.8 });
+    else this.addBox({ minX: x0 - PD / 2, maxX: x0 + PD / 2, minZ: z0 - 1.75, maxZ: z0 - 1.75 + span, h: 2.8 });
   }
 
   private block(i: number, j: number) {
@@ -465,6 +456,8 @@ export class City {
     this.pool(cx + 14, cz + 5, 6, 0x6a90d0);
     // Kiosk "Soyuzpechat" and some trees around the parking lot
     this.props.add('kiosk', cx + 24, 0, cz + 20, 0, 1);
+    this.props.add('kvass', cx - 22, 0, cz + 19, 0.3, 1);
+    this.addBox({ minX: cx - 24, maxX: cx - 20, minZ: cz + 18, maxZ: cz + 20, h: 2.1 });
     this.addBox({ minX: cx + 22.5, maxX: cx + 25.5, minZ: cz + 18.8, maxZ: cz + 21.2, h: 2.6 });
     this.sign('СОЮЗПЕЧАТЬ', cx + 24, 2.9, cz + 21.3, 3, 0.55, 0, '#ffffff', '#1a4f99');
     for (let k = 0; k < 6; k++) this.tree(cx - 28 + k * 11, cz + 28, true);
@@ -559,6 +552,8 @@ export class City {
         this.addBox({ minX: x - 2.5, maxX: x + 2.5, minZ: z - 1.1, maxZ: z + 1.1, h: 1.1 });
       }
     this.sign('РЫНОК', cx, 5, cz - 26, 8, 1.6, 0, '#ffffff', '#7a1d1d');
+    this.props.add('kvass', cx + 26, 0, cz - 20, -0.4, 1);
+    this.addBox({ minX: cx + 24, maxX: cx + 28, minZ: cz - 21, maxZ: cz - 19, h: 2.1 });
     for (const s of [-1, 1]) {
       const p = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 5.8, 6), new THREE.MeshStandardMaterial({ color: 0x555 }));
       p.position.set(cx + s * 4.2, 2.9, cz - 26.2);

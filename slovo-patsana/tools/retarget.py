@@ -25,13 +25,6 @@ CLIPS = {
     'Kick': 'kick',
 }
 
-UE_TO_TGT = {
-    'pelvis': 'Hips', 'spine_01': 'SPINE0', 'spine_02': 'SPINE1', 'spine_03': 'SPINE2', 'neck_01': 'neck', 'Head': 'Head',
-    'clavicle_l': 'LeftShoulder', 'upperarm_l': 'LeftArm', 'lowerarm_l': 'LeftForeArm', 'hand_l': 'LeftHand',
-    'clavicle_r': 'RightShoulder', 'upperarm_r': 'RightArm', 'lowerarm_r': 'RightForeArm', 'hand_r': 'RightHand',
-    'thigh_l': 'LeftUpLeg', 'calf_l': 'LeftLeg', 'foot_l': 'LeftFoot', 'ball_l': 'LeftToeBase',
-    'thigh_r': 'RightUpLeg', 'calf_r': 'RightLeg', 'foot_r': 'RightFoot', 'ball_r': 'RightToeBase',
-}
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 scene = bpy.context.scene
@@ -54,29 +47,76 @@ for a in tgt_acts:
 if tgt.animation_data:
     tgt.animation_data.action = None
 
-# Meshy names its spine chain oddly; walk Hips -> neck to find the three spine bones.
-chain = []
-b = tgt.data.bones['Hips']
-while True:
-    kids = [c for c in b.children if not c.name.startswith(('Left', 'Right'))]
-    if not kids:
-        break
-    b = kids[0]
-    if b.name == 'neck':
-        break
-    chain.append(b.name)
-spine = (chain + chain[-1:] * 3)[:3]
-names = {'SPINE0': spine[0], 'SPINE1': spine[1], 'SPINE2': spine[2]}
-MAP = {s: names.get(t, t) for s, t in UE_TO_TGT.items()}
-MAP = {s: t for s, t in MAP.items() if t in tgt.data.bones}
-# Avoid mapping two source bones onto one target bone when the target spine is shorter.
-seen = set()
-for s in list(MAP):
-    if MAP[s] in seen:
-        del MAP[s]
-    else:
-        seen.add(MAP[s])
-print('spine chain', chain, 'mapped', len(MAP))
+import re
+
+
+def norm(n):
+    """'mixamorig:LeftUpLeg_09' / 'rp_x_upperarm_l_024' / 'CC_Base_L_Thigh_04' -> comparable tokens."""
+    n = n.split(':')[-1]
+    n = re.sub(r'^rp_.*?_(?=(root|hip|spine|neck|head|jaw|eye|mouth|shoulder|upperarm|lowerarm|hand|thumb|index|middle|ring|pinky|thigh|calf|foot|ball|toe))', '', n.lower())
+    n = re.sub(r'_\d+$', '', n)
+    n = n.replace('cc_base_', '')
+    return n
+
+
+def side_of(n):
+    if re.search(r'(^|[_.])l([_.]|$)|left', n):
+        return 'L'
+    if re.search(r'(^|[_.])r([_.]|$)|right', n):
+        return 'R'
+    return ''
+
+
+def find_slots(arm):
+    """Map canonical slots (hips, spine0..2, neck, head, shL, armL, foreL, handL, thighL, calfL, footL, toeL, …)
+    to bone names, for Meshy, UE/Quaternius, Mixamo, RenderPeople and Reallusion CC rigs."""
+    bones = arm.data.bones
+    depth = {b.name: len(b.parent_recursive) for b in bones}
+    info = [(b.name, norm(b.name), side_of(norm(b.name))) for b in bones]
+    bad = ('twist', 'end', 'share', 'top', 'index', 'middle', 'ring', 'pinky', 'thumb', 'finger', 'toe1', 'roll')
+    def pick(pred, side=''):
+        c = [n for n, k, s in info if pred(k) and s == side and not any(x in k for x in bad)]
+        return min(c, key=lambda n: depth[n]) if c else None
+    slots = {}
+    slots['hips'] = pick(lambda k: k in ('hips', 'hip')) or pick(lambda k: k == 'pelvis')
+    spine = sorted([n for n, k, s in info if ('spine' in k or k == 'waist') and not any(x in k for x in bad)], key=lambda n: depth[n])
+    for i, n in enumerate(spine[:3]):
+        slots[f'spine{i}'] = n
+    slots['neck'] = pick(lambda k: 'neck' in k)
+    slots['head'] = pick(lambda k: k == 'head' or k.endswith('_head') or k == 'head')
+    for S in ('L', 'R'):
+        slots['sh' + S] = pick(lambda k: 'clavicle' in k or 'shoulder' in k, S)
+        slots['arm' + S] = pick(lambda k: ('upperarm' in k) or (re.sub(r'left|right|_|l$|r$|^l|^r', '', k) == 'arm'), S)
+        slots['fore' + S] = pick(lambda k: 'forearm' in k or 'lowerarm' in k, S)
+        slots['hand' + S] = pick(lambda k: re.sub(r'left|right|_|\.|^l|^r|l$|r$', '', k) == 'hand', S)
+        slots['thigh' + S] = pick(lambda k: 'thigh' in k or 'upleg' in k or 'upperleg' in k, S)
+        slots['calf' + S] = pick(lambda k: 'calf' in k or 'shin' in k or 'lowerleg' in k or (re.sub(r'left|right|_|^l|^r|l$|r$', '', k) == 'leg'), S)
+        slots['foot' + S] = pick(lambda k: 'foot' in k, S)
+        slots['toe' + S] = pick(lambda k: 'toebase' in k or k.startswith('ball') or re.sub(r'left|right|_|^l|^r|l$|r$', '', k) == 'toe', S)
+    return {k: v for k, v in slots.items() if v}
+
+
+# Some rigs (RenderPeople) come in centimetres: scale the whole import to metres.
+_root = tgt
+while _root.parent:
+    _root = _root.parent
+_hip_bone = next((b for b in tgt.data.bones if 'hip' in b.name.lower() or 'pelvis' in b.name.lower()), tgt.data.bones[0])
+if (tgt.matrix_world @ _hip_bone.head_local).z > 10:
+    _root.scale = _root.scale * 0.01
+    bpy.context.view_layer.update()
+    print('scaled centimetre rig to metres')
+
+TGT_SLOTS = find_slots(tgt)
+# Normalise height: the head joint of a ~1.75 m adult sits around 1.6 m.
+_head_z = (tgt.matrix_world @ tgt.data.bones[TGT_SLOTS['head']].head_local).z if 'head' in TGT_SLOTS else 1.6
+if not 1.4 < _head_z < 1.85:
+    _root.scale = _root.scale * (1.6 / _head_z)
+    bpy.context.view_layer.update()
+    print('normalised height, head was at', round(_head_z, 2))
+# Next joint along each limb (slot prefix without the L/R side).
+CHILD_SLOT = {'sh': 'arm', 'arm': 'fore', 'fore': 'hand', 'thigh': 'calf', 'calf': 'foot', 'foot': 'toe'}
+print('target slots', len(TGT_SLOTS), {k: v for k, v in TGT_SLOTS.items() if k in ('hips', 'spine0', 'armL', 'calfR', 'toeL')})
+HIPS = TGT_SLOTS['hips']
 
 # Strip emissive (it would make clothes glow at night) and keep textures modest.
 for o in tgt_objs:
@@ -106,6 +146,8 @@ if DEC < 1:
         if o.type != 'MESH':
             continue
         bpy.context.view_layer.objects.active = o
+        if o.data.shape_keys:
+            o.shape_key_clear()
         mod = o.modifiers.new('dec', 'DECIMATE')
         mod.ratio = DEC
         bpy.ops.object.modifier_move_to_index(modifier='dec', index=0)
@@ -134,32 +176,44 @@ def order(arm, names_):
     return out
 
 
-tgt_order = order(tgt, set(MAP.values()))
-inv_map = {t: s for s, t in MAP.items()}
+tgt_order = order(tgt, set(TGT_SLOTS.values()))
 tgt_rest_world = {t: world_rot(tgt, tgt.data.bones[t].matrix_local) for t in tgt_order}
 
 made = []
 for path in SRCS:
     src, src_objs, src_acts = import_glb(path)
-    # Use the source's own bone names if it is a Meshy rig (for extra clips like a kick).
     src_is_ue = 'pelvis' in src.data.bones
-    smap = {inv_map[t]: t for t in tgt_order} if src_is_ue else {t: t for t in tgt_order if t in src.data.bones}
-    if not src_is_ue:
-        # Meshy source: spine names are the same as ours by construction.
-        pass
-    sinv = {t: s for s, t in smap.items()}
+    src_slots = find_slots(src)
+    # target bone -> source bone, through the shared slot names
+    sinv = {TGT_SLOTS[k]: v for k, v in src_slots.items() if k in TGT_SLOTS}
     # Rest alignment: rotate each target rest bone so it points like the source rest bone.
     align = {}
+    slot_of = {v: k for k, v in TGT_SLOTS.items()}
     for t in tgt_order:
         s = sinv.get(t)
         if not s:
             continue
-        d_s = bone_dir(src, src.data.bones[s])
-        d_t = bone_dir(tgt, tgt.data.bones[t])
+        # Torso bones point different ways in different rigs (RenderPeople's hip points
+        # forward); both characters stand upright facing +Z, so keep those as-is and
+        # only line up the limbs, whose rest poses differ (A-pose vs T-pose).
+        if slot_of.get(t, '') in ('hips', 'spine0', 'spine1', 'spine2', 'neck', 'head'):
+            align[t] = Quaternion()
+            continue
+        # Direction along the limb = this joint to the next joint (bone tails from
+        # imported FBX/glTF rigs often point somewhere arbitrary).
+        slot = slot_of.get(t, '')
+        nxt = CHILD_SLOT.get(slot[:-1], None) if slot else None
+        child_slot = nxt + slot[-1] if nxt else None
+        if child_slot and child_slot in TGT_SLOTS and child_slot in src_slots:
+            d_s = ((src.matrix_world @ src.data.bones[src_slots[child_slot]].head_local) - (src.matrix_world @ src.data.bones[s].head_local)).normalized()
+            d_t = ((tgt.matrix_world @ tgt.data.bones[TGT_SLOTS[child_slot]].head_local) - (tgt.matrix_world @ tgt.data.bones[t].head_local)).normalized()
+        else:
+            d_s = bone_dir(src, src.data.bones[s])
+            d_t = bone_dir(tgt, tgt.data.bones[t])
         align[t] = d_t.rotation_difference(d_s)
-    s_hips = sinv.get('Hips')
+    s_hips = sinv.get(HIPS)
     src_hip_h = (src.matrix_world @ src.data.bones[s_hips].head_local).z
-    tgt_hip_h = (tgt.matrix_world @ tgt.data.bones['Hips'].head_local).z
+    tgt_hip_h = (tgt.matrix_world @ tgt.data.bones[HIPS].head_local).z
     hscale = tgt_hip_h / max(src_hip_h, 1e-4)
     src_hip_rest = src.matrix_world @ src.data.bones[s_hips].head_local
 
@@ -201,7 +255,7 @@ for path in SRCS:
                     rot_arm = tgt.matrix_world.to_quaternion().inverted() @ t_w
                 else:
                     rot_arm = ((parent_des @ rest_rel) if bone.parent else bone.matrix_local).to_quaternion()
-                if t == 'Hips':
+                if t == HIPS:
                     s_head_w = src.matrix_world @ sp.head
                     off_w = (s_head_w - src_hip_rest) * hscale
                     t_head_w = tgt.matrix_world @ bone.head_local + off_w
@@ -216,7 +270,7 @@ for path in SRCS:
                 pb.rotation_mode = 'QUATERNION'
                 pb.rotation_quaternion = rot
                 pb.keyframe_insert('rotation_quaternion', frame=f - f0)
-                if t == 'Hips':
+                if t == HIPS:
                     pb.location = loc
                     pb.keyframe_insert('location', frame=f - f0)
         made.append(game_name)

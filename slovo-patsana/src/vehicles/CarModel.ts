@@ -7,7 +7,7 @@ import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
  * Paint is recoloured per car in the shader so one model gives a whole
  * street of different 80s colours. The car faces +Z; y = 0 is the ground.
  */
-export type CarKind = 'zhiguli' | 'volga' | 'taxi' | 'uaz' | 'police';
+export type CarKind = 'zhiguli' | 'volga' | 'taxi' | 'uaz' | 'police' | 'zil';
 
 interface KindInfo {
   model: string;
@@ -29,6 +29,7 @@ const KINDS: Record<CarKind, KindInfo> = {
   },
   taxi: { model: 'volga', paintHue: 0.38, wheelR: 0.34, lampY: 0.7, paints: [[0.13, 0.75, 2.2]] },
   uaz: { model: 'uaz', paintHue: 0.22, wheelR: 0.4, lampY: 0.95, paints: [[0.22, 0.4, 1.0], [0.3, 0.3, 0.9]] },
+  zil: { model: 'zil', paintHue: 0.48, wheelR: 0.48, lampY: 1.0, paints: [[0.48, 0.35, 1.0], [0.6, 0.5, 1.0], [0.07, 0.65, 1.3], [0.3, 0.45, 0.9]] },
   police: { model: 'zhiguli_police', paintHue: -1, wheelR: 0.3, lampY: 0.66, paints: [[0, 0, 1]] },
 };
 

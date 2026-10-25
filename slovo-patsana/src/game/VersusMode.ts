@@ -110,7 +110,7 @@ export class VersusMode implements Mode, Arena, AIWorld {
       const x = side < 2 ? c.x + t : c.x + (side === 2 ? -23.2 : 23.2);
       const z = side < 2 ? c.z + (side === 0 ? -14 : 14) : c.z + t;
       const spec = civilSpec();
-      const b = makeBody(this.app.assets.charactersLod[spec.model], { tint: spec.tint, tintAmt: spec.tintAmt, scale: spec.scale });
+      const b = makeBody(spec.npc ? this.app.assets.npcs[spec.model] : this.app.assets.charactersLod[spec.model], { tint: spec.tint, tintAmt: spec.tintAmt, scale: spec.scale });
       b.root.position.set(x, 0, z);
       b.root.rotation.y = Math.atan2(c.x - x, c.z - z);
       b.anim.play(Math.random() < 0.5 ? 'yes' : 'talk');

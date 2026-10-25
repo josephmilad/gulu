@@ -3,7 +3,7 @@ import type { App, Mode } from './App';
 import { Fighter, type Arena, type HitResult, type Team } from '../actors/Fighter';
 import { Brain, type AIWorld, type Role } from '../actors/ai';
 import { CHARACTERS } from '../actors/characters';
-import { ALLY_NICKS, BARKS, CIVIL_NAMES_M, GANG_NICKS, civilSpec, gangSpec } from '../actors/looks';
+import { ALLY_NICKS, BARKS, CIVIL_NAMES_F, CIVIL_NAMES_M, GANG_NICKS, civilSpec, gangSpec } from '../actors/looks';
 import { makeBody } from '../actors/SkinnedBody';
 import { ATTACKS, type HitDef } from '../combat/attacks';
 import { FollowCamera } from '../core/FollowCamera';
@@ -240,8 +240,9 @@ export class FreeRoamMode implements Mode, Arena, AIWorld {
 
   spawnNpc(team: Team, role: Role, x: number, z: number, home: { x: number; z: number }) {
     const spec = team === 'civil' || team === 'police' ? civilSpec() : gangSpec(team);
-    const body = makeBody(this.app.assets.charactersLod[spec.model], { tint: spec.tint, tintAmt: spec.tintAmt, scale: spec.scale });
-    const name = team === 'civil' ? pick(Math.random, CIVIL_NAMES_M)
+    const gltf = spec.npc ? this.app.assets.npcs[spec.model] : this.app.assets.charactersLod[spec.model];
+    const body = makeBody(gltf, { tint: spec.tint, tintAmt: spec.tintAmt, scale: spec.scale });
+    const name = team === 'civil' ? pick(Math.random, spec.female ? CIVIL_NAMES_F : CIVIL_NAMES_M)
       : role === 'ally' ? pick(Math.random, ALLY_NICKS) : pick(Math.random, GANG_NICKS);
     const hp = team === 'civil' ? 40 : role === 'ally' ? 90 : 55 + Math.floor(this.authority / 5) * 3;
     const f = new Fighter({ body, hp: Math.min(hp, 110), power: team === 'civil' ? 0.6 : 0.8, speed: 1, team, name }, this);

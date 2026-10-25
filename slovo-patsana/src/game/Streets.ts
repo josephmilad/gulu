@@ -299,7 +299,7 @@ export class Streets implements CarArena {
       const s = CarDriver.spawnAround(px, pz, 55, 150);
       if (s) {
         const roll = Math.random();
-        const v = new Vehicle(roll < 0.5 ? 'zhiguli' : roll < 0.75 ? 'volga' : roll < 0.88 ? 'taxi' : 'uaz');
+        const v = new Vehicle(roll < 0.46 ? 'zhiguli' : roll < 0.68 ? 'volga' : roll < 0.8 ? 'taxi' : roll < 0.9 ? 'uaz' : 'zil');
         v.place(s.x, s.z, s.heading);
         v.data.driverAI = s.driver;
         v.driver = 'npc';

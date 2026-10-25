@@ -5,10 +5,11 @@ import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 const BASE = import.meta.env.BASE_URL + 'assets/';
 
 export const CHARACTER_FILES = ['vova', 'palto', 'kashchey'] as const;
-export const VEHICLE_FILES = ['zhiguli', 'zhiguli_police', 'volga', 'uaz'] as const;
+export const NPC_FILES = ['eric', 'carla', 'claudia', 'nathan', 'sophia', 'oldcoat'] as const;
+export const VEHICLE_FILES = ['zhiguli', 'zhiguli_police', 'volga', 'uaz', 'zil'] as const;
 export const PROP_FILES = [
-  'bus_stop', 'kiosk',
-  'street_lamp_01', 'metal_trash_can', 'utility_box_01', 'covered_car', 'old_tyre', 'trashbag',
+  'bus_stop', 'kiosk', 'sov_lamp', 'sov_bin', 'sov_bench', 'seesaw', 'rocket', 'kvass', 'garages',
+  'metal_trash_can', 'utility_box_01', 'covered_car', 'old_tyre', 'trashbag',
   'concrete_road_barrier', 'dead_tree_trunk', 'wooden_crate_01', 'painted_wooden_bench',
   'water_manhole_cover', 'exterior_aircon_unit',
 ] as const;
@@ -28,6 +29,8 @@ export interface Assets {
   charactersLod: Record<string, GLTF>;
   props: Record<string, THREE.Object3D>;
   vehicles: Record<string, GLTF>;
+  /** Photoscanned passers-by (RenderPeople & co., CC-BY). */
+  npcs: Record<string, GLTF>;
   tex: Record<string, PbrSet>;
   hdr: THREE.DataTexture;
 }
@@ -39,7 +42,7 @@ export async function loadAssets(onProgress: (p: number, label: string) => void)
   const imgLoader = new THREE.ImageLoader();
   let done = 0;
   const jobs: Promise<unknown>[] = [];
-  const total = CHARACTER_FILES.length * 2 + VEHICLE_FILES.length + PROP_FILES.length + TEXTURE_SETS.length * 3 + 1;
+  const total = CHARACTER_FILES.length * 2 + NPC_FILES.length + VEHICLE_FILES.length + PROP_FILES.length + TEXTURE_SETS.length * 3 + 1;
   const tick = (label: string) => onProgress(++done / total, label);
   const track = <T>(p: Promise<T>, label: string) => {
     const q = p.then((v) => {
@@ -50,7 +53,8 @@ export async function loadAssets(onProgress: (p: number, label: string) => void)
     return q;
   };
 
-  const a: Assets = { characters: {}, charactersLod: {}, props: {}, vehicles: {}, tex: {}, hdr: null as unknown as THREE.DataTexture };
+  const a: Assets = { characters: {}, charactersLod: {}, props: {}, vehicles: {}, npcs: {}, tex: {}, hdr: null as unknown as THREE.DataTexture };
+  for (const n of NPC_FILES) track(gltf.loadAsync(`${BASE}characters/npc/${n}.glb`), 'прохожие').then((g) => (a.npcs[n] = g));
   for (const v of VEHICLE_FILES) track(gltf.loadAsync(`${BASE}vehicles/${v}.glb`), 'машины').then((g) => (a.vehicles[v] = g));
   for (const c of CHARACTER_FILES) {
     track(gltf.loadAsync(`${BASE}characters/${c}.glb`), 'персонажи').then((g) => (a.characters[c] = g));

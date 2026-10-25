@@ -18,9 +18,17 @@ export interface Body {
 /** Seconds into each clip where the punch/kick actually lands, measured once per model. */
 const impactCache = new Map<GLTF, Record<string, number>>();
 
+let sharedImpacts: Record<string, number> | null = null;
+
 function measureImpacts(g: GLTF) {
   let res = impactCache.get(g);
   if (res) return res;
+  // Every model carries the same retargeted clips, so timings measured on a
+  // hero rig (Meshy bone names) are shared with rigs that name bones differently.
+  if (!g.scene.getObjectByName('LeftHand') || !g.scene.getObjectByName('Hips')) {
+    if (sharedImpacts) return sharedImpacts;
+    return {};
+  }
   res = {};
   const o = SkeletonUtils.clone(g.scene);
   const mixer = new THREE.AnimationMixer(o);
@@ -55,6 +63,7 @@ function measureImpacts(g: GLTF) {
     res[name] = bestT;
   }
   impactCache.set(g, res);
+  sharedImpacts = sharedImpacts ?? res;
   return res;
 }
 

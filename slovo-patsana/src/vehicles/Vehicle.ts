@@ -34,6 +34,7 @@ const TUNING: Record<CarKind, Tuning> = {
   volga: { engine: 7, brake: 15, maxSpeed: 42, reverseMax: 8, drag: 0.07, rolling: 1.6, turnRate: 1.9, gripSpeed: 7, grip: 5, gripHandbrake: 0.7, mass: 1.3 },
   taxi: { engine: 7, brake: 15, maxSpeed: 42, reverseMax: 8, drag: 0.07, rolling: 1.6, turnRate: 1.9, gripSpeed: 7, grip: 5, gripHandbrake: 0.7, mass: 1.3 },
   police: { engine: 8, brake: 16, maxSpeed: 44, reverseMax: 8, drag: 0.08, rolling: 1.6, turnRate: 2.25, gripSpeed: 6, grip: 5.8, gripHandbrake: 0.7, mass: 1 },
+  zil: { engine: 4.5, brake: 11, maxSpeed: 26, reverseMax: 6, drag: 0.1, rolling: 2, turnRate: 1.5, gripSpeed: 8, grip: 5, gripHandbrake: 1.2, mass: 3 },
   uaz: { engine: 7.8, brake: 15, maxSpeed: 36, reverseMax: 8, drag: 0.09, rolling: 1.8, turnRate: 2.0, gripSpeed: 6, grip: 6, gripHandbrake: 1, mass: 1.6 },
 };
 
