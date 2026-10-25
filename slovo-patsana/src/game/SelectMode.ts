@@ -3,10 +3,9 @@ import type { App, Mode } from './App';
 import { h, uiRoot } from '../ui/dom';
 import { sfx } from '../audio/sfx';
 import { CHARACTERS, type CharacterDef } from '../actors/characters';
-import { buildHuman, type HumanRig } from '../actors/HumanModel';
-import { Animator } from '../actors/Animator';
+import { makeBody, type Body } from '../actors/SkinnedBody';
 import { Environment } from '../world/Environment';
-import { snowTex } from '../world/textures';
+import { pbrMaterial } from '../core/assets';
 import { damp } from '../core/math';
 
 interface Cursor {
@@ -25,7 +24,7 @@ export class SelectMode implements Mode {
   camera = new THREE.PerspectiveCamera(40, 1, 0.1, 300);
   private root = h('div', 'select');
   private cards: HTMLElement[] = [];
-  private rigs: { rig: HumanRig; anim: Animator; baseX: number }[] = [];
+  private rigs: { rig: Body; anim: Body['anim']; baseX: number }[] = [];
   private cursors: Cursor[] = [];
   private spots: THREE.SpotLight[] = [];
   private env: Environment;
@@ -34,11 +33,9 @@ export class SelectMode implements Mode {
   private t = 0;
 
   constructor(app: App, private players: 1 | 2, private onDone: (ids: string[]) => void, private onBack: () => void) {
-    this.env = new Environment(this.scene);
+    this.env = new Environment(this.scene, app.envMap);
     this.scene.fog = new THREE.Fog(0x1a0d12, 12, 60);
-    const floorTex = snowTex();
-    floorTex.repeat.set(6, 6);
-    const floor = new THREE.Mesh(new THREE.CircleGeometry(30, 48), new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.95 }));
+    const floor = new THREE.Mesh(new THREE.CircleGeometry(30, 48), pbrMaterial(app.assets.tex.snow_01, 12, 12));
     floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = true;
     this.scene.add(floor);
@@ -52,8 +49,8 @@ export class SelectMode implements Mode {
     }
     const n = CHARACTERS.length;
     CHARACTERS.forEach((ch, i) => {
-      const rig = buildHuman(ch.look);
-      const anim = new Animator(rig);
+      const rig = makeBody(app.assets.characters[ch.model], { hero: true });
+      const anim = rig.anim;
       const x = (i - (n - 1) / 2) * 1.9 + (players === 1 ? 1.5 : 0);
       rig.root.position.set(x, 0, 0);
       this.scene.add(rig.root);
@@ -170,12 +167,12 @@ export class SelectMode implements Mode {
     const sel = new Set(this.cursors.map((c) => c.idx));
     this.rigs.forEach((r, i) => {
       const on = sel.has(i);
-      this.spots[i].intensity = damp(this.spots[i].intensity, on ? 170 : 12, 8, dt);
+      this.spots[i].intensity = damp(this.spots[i].intensity, on ? 45 : 4, 8, dt);
       const z = damp(r.rig.root.position.z, on ? 1.2 : 0, 6, dt);
       r.rig.root.position.z = z;
       // Turn toward the camera when picked, idle three-quarter otherwise.
       r.rig.root.rotation.y = damp(r.rig.root.rotation.y, on ? 0 : i === 0 ? 0.5 : i === this.rigs.length - 1 ? -0.5 : 0, 6, dt);
-      r.anim.setGuard(on);
+      if (on && !r.anim.current && Math.random() < dt * 0.15) r.anim.play('yes');
       r.anim.speed = 0;
       r.anim.update(dt);
     });

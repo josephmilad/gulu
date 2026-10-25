@@ -1,5 +1,4 @@
-import { buildHuman, type HumanRig, type Look } from './HumanModel';
-import { Animator } from './Animator';
+import type { Body, SkinnedAnimator } from './SkinnedBody';
 import { ATTACKS, PUNCH_CHAIN, type AttackDef, type HitDef } from '../combat/attacks';
 import { clamp, dampAngle, wrapAngle } from '../core/math';
 import type { BoxGrid } from '../core/collision';
@@ -23,7 +22,7 @@ export interface Ctrl {
 export const emptyCtrl = (): Ctrl => ({ mx: 0, mz: 0, speed: 0, face: null, punch: false, kick: false, special: false, block: false, dodge: false });
 
 export interface FighterOpts {
-  look: Look;
+  body: Body;
   hp: number;
   power?: number;
   speed?: number;
@@ -52,8 +51,8 @@ export interface Arena {
 }
 
 export class Fighter {
-  rig: HumanRig;
-  anim: Animator;
+  rig: Body;
+  anim: SkinnedAnimator;
   x = 0;
   z = 0;
   vx = 0;
@@ -89,8 +88,8 @@ export class Fighter {
   hitFlash = 0;
 
   constructor(opts: FighterOpts, private arena: Arena) {
-    this.rig = buildHuman(opts.look);
-    this.anim = new Animator(this.rig);
+    this.rig = opts.body;
+    this.anim = opts.body.anim;
     this.anim.onStep = () => this.arena.onStep(this);
     this.hp = this.maxHp = opts.hp;
     this.power = opts.power ?? 1;

@@ -61,6 +61,19 @@ You need Node 18 or newer and a browser with WebGL (Chrome, Edge or Firefox).
 | `src/world/textures.ts` | Every texture is drawn in code: facades, snow, asphalt, signs |
 | `src/game/*Mode.ts` | Menu, character select, free roam |
 
+## Graphics (step 2)
+
+- **Characters:** realistic 3D models of Вова, Андрей and Кащей. Each was generated from a concept image on
+  Higgsfield (Meshy image-to-3D with auto-rigging). The faces are original, not the actors'.
+- **Animations:** [Quaternius Universal Animation Library 1 & 2](https://quaternius.com) (CC0): walk, jog,
+  sprint, jab, cross, hook, hits, knockdown, get-up, roll and more. The kick is from Meshy's animation library.
+  `tools/retarget.py` (headless Blender) bakes them onto each character's skeleton.
+- **World:** [Poly Haven](https://polyhaven.com) (CC0) supplies the `winter_evening` HDRI lighting, the PBR snow,
+  snowy asphalt, pavement, concrete and brick textures, and the props (lamps, covered cars, bins, benches,
+  tyres, crates…). `tools/optimize_props.py` decimates the props to game budgets.
+- **Rendering:** [postprocessing](https://github.com/pmndrs/postprocessing) for bloom, AgX tone mapping, SMAA,
+  vignette and film grain, plus [N8AO](https://github.com/N8python/n8ao) ambient occlusion.
+
 ## Credits and references
 
 - Circle-vs-box collision is adapted from [depixeled-chris/gta7](https://github.com/depixeled-chris/gta7) (MIT).

@@ -33,7 +33,7 @@ export interface Facade {
   floors: number;
 }
 
-export function panelFacade(seed: number, wall: string, panelLines: boolean, brick = false): Facade {
+export function panelFacade(seed: number, wall: string, panelLines: boolean, brick = false, wallImg?: HTMLImageElement, tilePx = 128): Facade {
   const cols = 16, floors = 16, cw = 64, ch = 64;
   const rnd = mulberry32(seed);
   const lit: boolean[] = [];
@@ -43,7 +43,18 @@ export function panelFacade(seed: number, wall: string, panelLines: boolean, bri
   const map = make(cols * cw, floors * ch, (g) => {
     g.fillStyle = wall;
     g.fillRect(0, 0, cols * cw, floors * ch);
-    if (brick) {
+    if (wallImg) {
+      // Real photographed concrete/brick, tinted toward this building's colour.
+      for (let y = 0; y < floors * ch; y += tilePx)
+        for (let x = 0; x < cols * cw; x += tilePx) g.drawImage(wallImg, x, y, tilePx, tilePx);
+      g.globalCompositeOperation = 'multiply';
+      g.fillStyle = wall;
+      g.globalAlpha = 0.55;
+      g.fillRect(0, 0, cols * cw, floors * ch);
+      g.globalAlpha = 1;
+      g.globalCompositeOperation = 'source-over';
+    }
+    if (brick && !wallImg) {
       for (let y = 0; y < floors * ch; y += 8) {
         for (let x = (y / 8) % 2 ? 0 : 8; x < cols * cw; x += 16) {
           g.fillStyle = `rgba(0,0,0,${0.05 + Math.random() * 0.08})`;
@@ -53,7 +64,7 @@ export function panelFacade(seed: number, wall: string, panelLines: boolean, bri
         g.fillRect(0, y + 7, cols * cw, 1);
       }
     }
-    speckle(g, cols * cw, floors * ch, 6000, 0.05, 3);
+    if (!wallImg) speckle(g, cols * cw, floors * ch, 6000, 0.05, 3);
     for (let f = 0; f < floors; f++)
       for (let c = 0; c < cols; c++) {
         const x = c * cw;

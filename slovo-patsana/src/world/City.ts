@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import { BoxGrid, type Box } from '../core/collision';
+import { pbrMaterial, type Assets } from '../core/assets';
 import { mulberry32, pick, range } from '../core/math';
 import {
-  asphaltTex, garageTex, shopfrontTex, glowTex, iceTex, panelFacade, sidewalkTex, signTex, snowTex, type Facade,
+  garageTex, shopfrontTex, glowTex, iceTex, panelFacade, signTex, type Facade,
 } from './textures';
 
 export type Zone = 'universam' | 'razezd' | 'hadi';
@@ -87,10 +88,12 @@ export class City {
   private inst = new Instancer();
   private rnd = mulberry32(1989);
   private facades: { f: Facade; mat: THREE.Material }[] = [];
-  private roofMat = new THREE.MeshStandardMaterial({ color: 0xe6ebf2, roughness: 0.9 });
+  private roofMat = new THREE.MeshStandardMaterial({ color: 0xe6ebf2, roughness: 0.85 });
   private signs: THREE.Mesh[] = [];
 
-  constructor() {
+  private props = new PropInstancer();
+
+  constructor(private assets: Assets) {
     this.makeFacades();
     this.ground();
     this.roads();
@@ -98,21 +101,24 @@ export class City {
     this.lights();
     this.walkGraph();
     this.inst.build(this.group);
+    this.props.build(this.group, assets);
     this.group.updateMatrixWorld(true);
   }
 
   private makeFacades() {
     const defs: [string, boolean, boolean][] = [
-      ['#b9b5aa', true, false], // grey panel
-      ['#cdbf9f', true, false], // beige panel
-      ['#9a5a45', false, true], // red brick khrushchevka
-      ['#a9b4bd', true, false], // bluish panel
-      ['#c2a986', false, true], // yellow brick
+      ['#d8d4ca', true, false], // grey panel
+      ['#e6d6b4', true, false], // beige panel
+      ['#ffffff', false, true], // red brick khrushchevka
+      ['#c9d6e2', true, false], // bluish panel
+      ['#f2d49a', false, true], // yellow brick
     ];
+    const t = this.assets.tex;
     defs.forEach(([wall, lines, brick], k) => {
-      const f = panelFacade(100 + k, wall, lines, brick);
+      const img = brick ? t.brick_4.image : k % 2 ? t.grey_plaster.image : t.concrete_wall_006.image;
+      const f = panelFacade(100 + k, wall, lines, brick, img, brick ? 96 : 192);
       const mat = new THREE.MeshStandardMaterial({
-        map: f.map, emissiveMap: f.emissive, emissive: 0xffffff, emissiveIntensity: 1.25, roughness: 0.92,
+        map: f.map, emissiveMap: f.emissive, emissive: 0xffe2b0, emissiveIntensity: 2.2, roughness: 0.88,
       });
       this.facades.push({ f, mat });
     });
@@ -173,9 +179,7 @@ export class City {
 
   private ground() {
     const size = HALF * 2 + 400;
-    const t = snowTex();
-    t.repeat.set(size / 24, size / 24);
-    const g = new THREE.Mesh(new THREE.PlaneGeometry(size, size), new THREE.MeshStandardMaterial({ map: t, roughness: 0.95 }));
+    const g = new THREE.Mesh(new THREE.PlaneGeometry(size, size), pbrMaterial(this.assets.tex.snow_01, size / 2.2, size / 2.2, { roughness: 0.9, color: 0xf2f5fa }));
     g.rotation.x = -Math.PI / 2;
     g.receiveShadow = true;
     this.group.add(g);
@@ -201,13 +205,9 @@ export class City {
   }
 
   private roads() {
-    const at = asphaltTex();
-    const sw = sidewalkTex();
     const len = N * PITCH + ROAD;
-    const asphaltMat = new THREE.MeshStandardMaterial({ map: at, roughness: 0.75, polygonOffset: true, polygonOffsetFactor: -1 });
-    at.repeat.set(1, len / 14);
-    const swMat = new THREE.MeshStandardMaterial({ map: sw, roughness: 0.9 });
-    sw.repeat.set(1, len / 4);
+    const asphaltMat = pbrMaterial(this.assets.tex.asphalt_snow, (ROAD - SIDEWALK * 2) / 4, len / 4, { polygonOffset: true, polygonOffsetFactor: -1 });
+    const swMat = pbrMaterial(this.assets.tex.concrete_pavement, SIDEWALK / 2, len / 2);
     for (let k = 0; k <= N; k++) {
       const c = -HALF + k * PITCH;
       for (const vertical of [true, false]) {
@@ -271,26 +271,20 @@ export class City {
   private quad = new THREE.PlaneGeometry(1, 1);
 
   private lights() {
-    const poleGeo = new THREE.CylinderGeometry(0.08, 0.12, 7.5, 6);
-    const poleMat = new THREE.MeshStandardMaterial({ color: 0x55585e, roughness: 0.6, metalness: 0.4 });
-    const armGeo = new THREE.BoxGeometry(0.1, 0.1, 1.8);
     const headGeo = new THREE.BoxGeometry(0.4, 0.18, 0.7);
-    const headMat = new THREE.MeshBasicMaterial({ color: 0xffc070 });
+    const headMat = new THREE.MeshBasicMaterial({ color: 0xffd090, toneMapped: false });
     for (let k = 0; k <= N; k++) {
       const c = -HALF + k * PITCH;
       for (let s = -HALF + 12; s < HALF; s += 26) {
         for (const vertical of [true, false]) {
           const side = (Math.floor(s / 26) + k) % 2 ? 1 : -1;
-          const o = c + side * (ROAD / 2 - 0.5);
+          const o = c + side * (ROAD / 2 - 0.7);
           const x = vertical ? o : s, z = vertical ? s : o;
           const ry = vertical ? (side > 0 ? -Math.PI / 2 : Math.PI / 2) : side > 0 ? Math.PI : 0;
-          this.inst.add('pole', poleGeo, poleMat, x, 3.75, z);
-          const ax = x + Math.sin(ry) * 0.9, az = z + Math.cos(ry) * 0.9;
-          this.inst.add('arm', armGeo, poleMat, ax, 7.4, az, ry, 1, 1, 1, false);
-          const hx = x + Math.sin(ry) * 1.7, hz = z + Math.cos(ry) * 1.7;
-          this.inst.add('lamp', headGeo, headMat, hx, 7.35, hz, ry, 1, 1, 1, false);
-          this.glow(hx, 7.2, hz, 4, 0xffa040);
-          this.pool(hx, hz, 7, 0xff9a40);
+          this.props.add('street_lamp_01', x, 0, z, ry, 1.8);
+          this.inst.add('lamp', headGeo, headMat, x, 6.55, z, ry, 0.5, 0.5, 0.5, false);
+          this.glow(x, 6.5, z, 3.2, 0xffa040);
+          this.pool(x, z, 6.5, 0xff9a40);
           this.addBox({ minX: x - 0.15, maxX: x + 0.15, minZ: z - 0.15, maxZ: z + 0.15, h: 7.5 });
         }
       }
@@ -327,11 +321,39 @@ export class City {
   }
 
   private bench(x: number, z: number, ry: number) {
-    const wood = new THREE.MeshStandardMaterial({ color: 0x5b3c25 });
-    this.inst.add('benchSeat', new THREE.BoxGeometry(1.8, 0.08, 0.45), wood, x, 0.45, z, ry);
-    this.inst.add('benchBack', new THREE.BoxGeometry(1.8, 0.4, 0.06), wood, x - Math.sin(ry) * 0.22, 0.75, z - Math.cos(ry) * 0.22, ry);
-    this.inst.add('benchSnow', new THREE.BoxGeometry(1.8, 0.05, 0.4), this.roofMat, x, 0.51, z, ry, 1, 1, 1, false);
+    this.props.add('painted_wooden_bench', x, 0, z, ry + Math.PI, 1.5);
     this.addBox({ minX: x - 0.9, maxX: x + 0.9, minZ: z - 0.9, maxZ: z + 0.9, h: 0.9 });
+  }
+
+  /** Lived-in courtyard: parked cars under tarps, bins, junk, utility boxes. */
+  private dressYard(cx: number, cz: number, layout: number) {
+    const r = this.rnd;
+    const free = (x: number, z: number, rad: number) => this.grid.query(x - rad, z - rad, x + rad, z + rad, new Set()).size === 0;
+    // Bins with rubbish around them
+    const bx = cx + 18, bz = cz + 2;
+    if (free(bx, bz, 2)) {
+      this.props.add('metal_trash_can', bx, 0, bz, Math.PI, 1);
+      this.props.add('trashbag', bx - 1.6, 0, bz + 0.6, r() * 6, 1.1);
+      this.props.add('trashbag', bx + 1.4, 0, bz + 0.8, r() * 6, 0.9);
+      this.addBox({ minX: bx - 1, maxX: bx + 1, minZ: bz - 0.4, maxZ: bz + 0.4, h: 1 });
+    }
+    // Parked cars covered for the winter
+    const carZ = layout === 0 ? cz - 9 : cz - 14;
+    for (let k = 0; k < 3; k++) {
+      const x = cx - 20 + k * 6 + r() * 2, z = carZ + (layout === 0 ? 0 : 0);
+      if (!free(x, z, 2.5) || r() < 0.25) continue;
+      const ry = Math.PI / 2 + (r() - 0.5) * 0.15;
+      this.props.add('covered_car', x, 0, z, ry, 1);
+      this.addBox({ minX: x - 2.2, maxX: x + 2.2, minZ: z - 0.95, maxZ: z + 0.95, h: 1.4 });
+    }
+    // Odds and ends
+    for (let k = 0; k < 4; k++) {
+      const x = cx + range(r, -26, 26), z = cz + range(r, -26, 26);
+      if (!free(x, z, 1.2)) continue;
+      const what = pick(r, ['old_tyre', 'old_tyre', 'wooden_crate_01', 'trashbag', 'dead_tree_trunk', 'utility_box_01'] as const);
+      this.props.add(what, x, what === 'old_tyre' ? 0.08 : 0, z, r() * 6, what === 'dead_tree_trunk' ? 1.2 : 1);
+      if (what === 'utility_box_01' || what === 'wooden_crate_01') this.addBox({ minX: x - 0.4, maxX: x + 0.4, minZ: z - 0.4, maxZ: z + 0.4, h: 1 });
+    }
   }
 
   private playground(x: number, z: number) {
@@ -433,11 +455,7 @@ export class City {
       if (this.grid.query(x - 2, z - 2, x + 2, z + 2, new Set()).size) continue;
       this.tree(x, z, r() < 0.6);
     }
-    // Rubbish containers
-    const bin = new THREE.MeshStandardMaterial({ color: 0x3f5a3a, roughness: 0.7, metalness: 0.3 });
-    this.inst.add('bin', new THREE.BoxGeometry(1.4, 1.1, 1), bin, cx + 18, 0.55, cz + 2);
-    this.inst.add('bin', new THREE.BoxGeometry(1.4, 1.1, 1), bin, cx + 19.6, 0.55, cz + 2);
-    this.addBox({ minX: cx + 17.2, maxX: cx + 20.4, minZ: cz + 1.4, maxZ: cz + 2.6, h: 1.1 });
+    this.dressYard(cx, cz, layout);
     this.hangouts.push({ x: cx + 2, z: cz + (layout === 1 ? 0 : 8), zone });
   }
 
@@ -637,3 +655,42 @@ export class City {
 }
 
 const H_MARKET = 27;
+
+/**
+ * Places Poly Haven props (CC0) as InstancedMeshes: one per sub-mesh of each
+ * prop, so hundreds of lamps or bins cost a handful of draw calls.
+ */
+class PropInstancer {
+  private placed = new Map<string, THREE.Matrix4[]>();
+  private tmp = new THREE.Object3D();
+
+  add(name: string, x: number, y: number, z: number, ry = 0, scale = 1) {
+    let list = this.placed.get(name);
+    if (!list) this.placed.set(name, (list = []));
+    this.tmp.position.set(x, y, z);
+    this.tmp.rotation.set(0, ry, 0);
+    this.tmp.scale.setScalar(scale);
+    this.tmp.updateMatrix();
+    list.push(this.tmp.matrix.clone());
+  }
+
+  build(parent: THREE.Object3D, assets: Assets) {
+    for (const [name, mats] of this.placed) {
+      const src = assets.props[name];
+      if (!src) continue;
+      src.updateMatrixWorld(true);
+      src.traverse((o) => {
+        const m = o as THREE.Mesh;
+        if (!m.isMesh) return;
+        const im = new THREE.InstancedMesh(m.geometry, m.material, mats.length);
+        const local = m.matrixWorld;
+        const out = new THREE.Matrix4();
+        mats.forEach((pm, i) => im.setMatrixAt(i, out.multiplyMatrices(pm, local)));
+        im.castShadow = name !== 'water_manhole_cover';
+        im.receiveShadow = true;
+        im.computeBoundingSphere();
+        parent.add(im);
+      });
+    }
+  }
+}

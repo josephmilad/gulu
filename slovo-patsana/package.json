@@ -11,6 +11,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "n8ao": "^1.9.4",
+    "postprocessing": "^6.37.8",
     "three": "^0.170.0"
   },
   "devDependencies": {

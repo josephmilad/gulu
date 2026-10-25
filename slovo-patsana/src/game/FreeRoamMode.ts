@@ -3,7 +3,8 @@ import type { App, Mode } from './App';
 import { Fighter, type Arena, type HitResult, type Team } from '../actors/Fighter';
 import { Brain, type AIWorld, type Role } from '../actors/ai';
 import { CHARACTERS } from '../actors/characters';
-import { ALLY_NICKS, BARKS, CIVIL_NAMES_F, CIVIL_NAMES_M, GANG_NICKS, civilLook, gangLook } from '../actors/looks';
+import { ALLY_NICKS, BARKS, CIVIL_NAMES_M, GANG_NICKS, civilSpec, gangSpec } from '../actors/looks';
+import { makeBody } from '../actors/SkinnedBody';
 import { ATTACKS, type HitDef } from '../combat/attacks';
 import { FollowCamera } from '../core/FollowCamera';
 import { readIntent } from '../core/input';
@@ -57,7 +58,7 @@ export class FreeRoamMode implements Mode, Arena, AIWorld {
   private charId: string;
   private noteMesh: THREE.Mesh;
   /** Soft light that travels with the camera so characters read at night. */
-  private fill = new THREE.PointLight(0xffe2c4, 30, 16, 1.5);
+  private fill = new THREE.PointLight(0xffe2c4, 8, 14, 1.5);
 
   constructor(private app: App, charId: string, private onQuit: () => void) {
     const w = app.getWorld();
@@ -68,7 +69,7 @@ export class FreeRoamMode implements Mode, Arena, AIWorld {
     this.scene.add(this.actorLayer);
     this.actorLayer.add(this.fill);
     const ch = CHARACTERS.find((c) => c.id === charId)!;
-    const p = new Fighter({ look: ch.look, hp: ch.hp, power: ch.power, speed: ch.speed, special: ch.special, team: 'universam', name: ch.nick, charId: ch.id }, this);
+    const p = new Fighter({ body: makeBody(app.assets.characters[ch.model], { hero: true }), hp: ch.hp, power: ch.power, speed: ch.speed, special: ch.special, team: 'universam', name: ch.nick, charId: ch.id }, this);
     const s = this.city.spawn;
     p.place(s.x, s.z, s.heading);
     this.add(p);
@@ -205,11 +206,12 @@ export class FreeRoamMode implements Mode, Arena, AIWorld {
   }
 
   private spawnNpc(team: Team, role: Role, x: number, z: number, home: { x: number; z: number }) {
-    const look = team === 'civil' ? civilLook() : gangLook(team);
-    const name = team === 'civil' ? pick(Math.random, look.female ? CIVIL_NAMES_F : CIVIL_NAMES_M)
+    const spec = team === 'civil' ? civilSpec() : gangSpec(team);
+    const body = makeBody(this.app.assets.charactersLod[spec.model], { tint: spec.tint, tintAmt: spec.tintAmt, scale: spec.scale });
+    const name = team === 'civil' ? pick(Math.random, CIVIL_NAMES_M)
       : role === 'ally' ? pick(Math.random, ALLY_NICKS) : pick(Math.random, GANG_NICKS);
     const hp = team === 'civil' ? 40 : role === 'ally' ? 90 : 55 + Math.floor(this.authority / 5) * 3;
-    const f = new Fighter({ look, hp: Math.min(hp, 110), power: team === 'civil' ? 0.6 : 0.8, speed: 1, team, name }, this);
+    const f = new Fighter({ body, hp: Math.min(hp, 110), power: team === 'civil' ? 0.6 : 0.8, speed: 1, team, name }, this);
     f.place(x, z, Math.random() * Math.PI * 2);
     const skill = team === 'civil' ? 0.1 : Math.min(0.85, 0.3 + this.authority / 200);
     f.data.brain = new Brain(role, home, skill);

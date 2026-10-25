@@ -8,7 +8,7 @@ export class Environment {
   private readonly box = { x: 70, y: 36, z: 70 };
   wind = new THREE.Vector2(0.8, 0.3);
 
-  constructor(scene: THREE.Scene) {
+  constructor(scene: THREE.Scene, envMap?: THREE.Texture) {
     const c = document.createElement('canvas');
     c.width = 4;
     c.height = 256;
@@ -27,14 +27,19 @@ export class Environment {
     scene.background = sky;
     scene.fog = new THREE.Fog(0x232a40, 25, 230);
 
-    scene.add(new THREE.HemisphereLight(0x8090c0, 0x30303c, 1.1));
-    scene.add(new THREE.AmbientLight(0x404660, 0.6));
-    const sun = new THREE.DirectionalLight(0xb8c8ff, 1.6);
+    if (envMap) {
+      // Image-based light from a real snowy night courtyard (Poly Haven, CC0).
+      scene.environment = envMap;
+      scene.environmentIntensity = 0.32;
+      scene.environmentRotation.y = 1.2;
+    }
+    scene.add(new THREE.HemisphereLight(0x8090c0, 0x30303c, envMap ? 0.35 : 1.1));
+    const sun = new THREE.DirectionalLight(0xb8c8ff, 1.3);
     sun.castShadow = true;
-    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.mapSize.set(4096, 4096);
     const s = sun.shadow.camera;
-    s.left = s.bottom = -45;
-    s.right = s.top = 45;
+    s.left = s.bottom = -40;
+    s.right = s.top = 40;
     s.near = 1;
     s.far = 220;
     sun.shadow.bias = -0.0006;
@@ -68,7 +73,7 @@ export class Environment {
     fg.fillStyle = fr;
     fg.fillRect(0, 0, 32, 32);
     this.snow = new THREE.Points(geo, new THREE.PointsMaterial({
-      size: 0.16, map: new THREE.CanvasTexture(flake), transparent: true, depthWrite: false, opacity: 0.9, color: 0xffffff,
+      size: 0.1, map: new THREE.CanvasTexture(flake), transparent: true, depthWrite: false, opacity: 0.9, color: 0xffffff,
     }));
     this.snow.frustumCulled = false;
     scene.add(this.snow);

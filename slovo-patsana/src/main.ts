@@ -3,14 +3,15 @@ import { MenuMode } from './game/MenuMode';
 import { SelectMode } from './game/SelectMode';
 import { FreeRoamMode } from './game/FreeRoamMode';
 import { h, uiRoot } from './ui/dom';
+import { loadAssets } from './core/assets';
 
 const loading = h('div', 'loading', 'ЗАГРУЗКА РАЙОНА…');
 uiRoot().append(loading);
 
-// Let the loading text paint before the heavy city build.
-requestAnimationFrame(() =>
+loadAssets((p, label) => (loading.textContent = `ЗАГРУЗКА: ${label}… ${Math.round(p * 100)}%`)).then((assets) =>
   setTimeout(() => {
-    const app = new App(document.getElementById('game') as HTMLCanvasElement);
+    loading.textContent = 'СТРОИМ РАЙОН…';
+    const app = new App(document.getElementById('game') as HTMLCanvasElement, assets);
     app.getWorld();
     app.makePortraits();
     loading.remove();

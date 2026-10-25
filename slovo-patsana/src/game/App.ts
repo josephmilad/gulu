@@ -1,10 +1,15 @@
 import * as THREE from 'three';
+import {
+  BloomEffect, BrightnessContrastEffect, EffectComposer, EffectPass, HueSaturationEffect, NoiseEffect,
+  RenderPass, SMAAEffect, ToneMappingEffect, ToneMappingMode, VignetteEffect, BlendFunction,
+} from 'postprocessing';
+import { N8AOPostPass } from 'n8ao';
 import { Input } from '../core/input';
 import { City } from '../world/City';
 import { Environment } from '../world/Environment';
-import { buildHuman } from '../actors/HumanModel';
-import { Animator } from '../actors/Animator';
 import { CHARACTERS } from '../actors/characters';
+import { makeBody } from '../actors/SkinnedBody';
+import type { Assets } from '../core/assets';
 
 export interface Mode {
   scene: THREE.Scene;
@@ -19,28 +24,64 @@ export interface World {
   env: Environment;
 }
 
+/** Graphics presets; "high" turns on ambient occlusion. */
+export type Quality = 'low' | 'medium' | 'high';
+
 export class App {
   renderer: THREE.WebGLRenderer;
   input: Input;
   mode: Mode | null = null;
   portraits: Record<string, string> = {};
+  envMap: THREE.Texture;
   private world: World | null = null;
   private last = performance.now();
-  /** Global time scale for hit-stop and slow motion. */
   timeScale = 1;
   private hitStop = 0;
+  private composer: EffectComposer;
+  private renderPass: RenderPass;
+  private aoPass: N8AOPostPass;
+  private composerScene: THREE.Scene | null = null;
+  private composerCam: THREE.Camera | null = null;
+  quality: Quality;
 
-  constructor(public canvas: HTMLCanvasElement) {
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-    this.renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+  constructor(public canvas: HTMLCanvasElement, public assets: Assets) {
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance', stencil: false });
+    this.quality = (localStorage.getItem('sp-quality') as Quality) || 'high';
+    this.renderer.setPixelRatio(Math.min(devicePixelRatio, this.quality === 'low' ? 1 : 1.5));
     this.renderer.setSize(innerWidth, innerHeight);
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.15;
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.input = new Input(canvas);
+
+    const pm = new THREE.PMREMGenerator(this.renderer);
+    this.envMap = pm.fromEquirectangular(assets.hdr).texture;
+    pm.dispose();
+
+    this.composer = new EffectComposer(this.renderer, { frameBufferType: THREE.HalfFloatType });
+    this.renderPass = new RenderPass(new THREE.Scene(), new THREE.PerspectiveCamera());
+    this.composer.addPass(this.renderPass);
+    this.aoPass = new N8AOPostPass(new THREE.Scene(), new THREE.PerspectiveCamera(), innerWidth, innerHeight);
+    this.aoPass.configuration.aoRadius = 1.6;
+    this.aoPass.configuration.distanceFalloff = 1.0;
+    this.aoPass.configuration.intensity = 2.2;
+    this.aoPass.configuration.halfRes = true;
+    this.aoPass.setQualityMode('Medium');
+    this.composer.addPass(this.aoPass);
+    const bloom = new BloomEffect({ intensity: 1.1, luminanceThreshold: 0.75, luminanceSmoothing: 0.2, mipmapBlur: true, radius: 0.75 });
+    const grade = new HueSaturationEffect({ saturation: -0.12, hue: 0 });
+    const contrast = new BrightnessContrastEffect({ brightness: 0, contrast: 0.08 });
+    const tone = new ToneMappingEffect({ mode: ToneMappingMode.AGX });
+    const vignette = new VignetteEffect({ offset: 0.3, darkness: 0.55 });
+    const grain = new NoiseEffect({ blendFunction: BlendFunction.OVERLAY, premultiply: true });
+    grain.blendMode.opacity.value = 0.18;
+    this.composer.addPass(new EffectPass(new THREE.PerspectiveCamera(), bloom, grade, contrast, tone, vignette, grain));
+    this.composer.addPass(new EffectPass(new THREE.PerspectiveCamera(), new SMAAEffect()));
+    this.applyQuality();
+
     addEventListener('resize', () => {
       this.renderer.setSize(innerWidth, innerHeight);
+      this.composer.setSize(innerWidth, innerHeight);
       if (this.mode) {
         this.mode.camera.aspect = innerWidth / innerHeight;
         this.mode.camera.updateProjectionMatrix();
@@ -48,14 +89,40 @@ export class App {
     });
   }
 
-  /** The city is expensive to build, so menu and gameplay share one instance. */
+  setQuality(q: Quality) {
+    this.quality = q;
+    try {
+      localStorage.setItem('sp-quality', q);
+    } catch {
+      /* private mode */
+    }
+    this.renderer.setPixelRatio(Math.min(devicePixelRatio, q === 'low' ? 1 : 1.5));
+    this.composer.setSize(innerWidth, innerHeight);
+    this.applyQuality();
+  }
+
+  private applyQuality() {
+    this.aoPass.enabled = this.quality === 'high';
+    this.renderPass.renderToScreen = false;
+    const sz = this.quality === 'low' ? 1024 : this.quality === 'medium' ? 2048 : 4096;
+    if (this.world) {
+      const sun = this.world.env.sun;
+      if (sun.shadow.mapSize.x !== sz) {
+        sun.shadow.mapSize.set(sz, sz);
+        sun.shadow.map?.dispose();
+        sun.shadow.map = null as unknown as THREE.WebGLRenderTarget;
+      }
+    }
+  }
+
   getWorld(): World {
     if (!this.world) {
       const scene = new THREE.Scene();
-      const city = new City();
+      const city = new City(this.assets);
       scene.add(city.group);
-      const env = new Environment(scene);
+      const env = new Environment(scene, this.envMap);
       this.world = { scene, city, env };
+      this.applyQuality();
     }
     return this.world;
   }
@@ -71,6 +138,20 @@ export class App {
     this.hitStop = Math.max(this.hitStop, seconds);
   }
 
+  private render(scene: THREE.Scene, cam: THREE.Camera) {
+    if (scene !== this.composerScene || cam !== this.composerCam) {
+      this.composerScene = scene;
+      this.composerCam = cam;
+      this.renderPass.mainScene = scene;
+      this.renderPass.mainCamera = cam;
+      this.aoPass.scene = scene;
+      this.aoPass.camera = cam;
+      this.composer.setMainScene(scene);
+      this.composer.setMainCamera(cam);
+    }
+    this.composer.render();
+  }
+
   start() {
     const tick = (now: number) => {
       requestAnimationFrame(tick);
@@ -84,40 +165,44 @@ export class App {
       dt *= this.timeScale;
       if (this.mode) {
         this.mode.update(dt);
-        this.renderer.render(this.mode.scene, this.mode.camera);
+        this.render(this.mode.scene, this.mode.camera);
       }
       this.input.endFrame();
     };
     requestAnimationFrame(tick);
   }
 
-  /** Render a head-and-shoulders portrait of every playable character. */
+  /** Head-and-shoulders portrait of every playable character. */
   makePortraits() {
     const W = 240, H = 300;
     const rt = new THREE.WebGLRenderTarget(W, H, { colorSpace: THREE.SRGBColorSpace, samples: 4 });
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x1a0a0c);
-    scene.add(new THREE.HemisphereLight(0x9aa8d8, 0x302020, 1.4));
-    const key = new THREE.DirectionalLight(0xffe2c0, 2.4);
+    scene.environment = this.envMap;
+    scene.environmentIntensity = 0.6;
+    const key = new THREE.DirectionalLight(0xffe2c0, 2.6);
     key.position.set(1.5, 2.5, 3);
-    const rim = new THREE.DirectionalLight(0xff4040, 2.2);
+    const rim = new THREE.DirectionalLight(0xff4040, 3);
     rim.position.set(-2, 2, -2);
     scene.add(key, rim);
-    const cam = new THREE.PerspectiveCamera(26, W / H, 0.1, 20);
+    const cam = new THREE.PerspectiveCamera(22, W / H, 0.1, 20);
     const buf = new Uint8Array(W * H * 4);
     const c = document.createElement('canvas');
     c.width = W;
     c.height = H;
     const g = c.getContext('2d')!;
+    const prevTone = this.renderer.toneMapping;
+    this.renderer.toneMapping = THREE.AgXToneMapping;
     for (const ch of CHARACTERS) {
-      const rig = buildHuman(ch.look);
-      const an = new Animator(rig);
-      an.update(0.016);
-      rig.root.rotation.y = 0.35;
-      scene.add(rig.root);
-      const top = 1.62 * ch.look.height;
-      cam.position.set(0.45, top, 1.55);
-      cam.lookAt(0, top - 0.06, 0);
+      const body = makeBody(this.assets.characters[ch.model], { hero: true });
+      body.anim.update(0.016);
+      body.root.rotation.y = 0.3;
+      scene.add(body.root);
+      body.root.updateMatrixWorld(true);
+      const head = body.root.getObjectByName('Head')!;
+      const hp = head.getWorldPosition(new THREE.Vector3());
+      cam.position.set(0.35, hp.y - 0.02, 1.45);
+      cam.lookAt(0, hp.y - 0.12, 0);
       this.renderer.setRenderTarget(rt);
       this.renderer.render(scene, cam);
       this.renderer.readRenderTargetPixels(rt, 0, 0, W, H, buf);
@@ -125,8 +210,9 @@ export class App {
       for (let y = 0; y < H; y++) img.data.set(buf.subarray((H - 1 - y) * W * 4, (H - y) * W * 4), y * W * 4);
       g.putImageData(img, 0, 0);
       this.portraits[ch.id] = c.toDataURL();
-      scene.remove(rig.root);
+      scene.remove(body.root);
     }
+    this.renderer.toneMapping = prevTone;
     this.renderer.setRenderTarget(null);
     rt.dispose();
   }
