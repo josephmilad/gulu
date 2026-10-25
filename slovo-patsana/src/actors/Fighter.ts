@@ -3,7 +3,7 @@ import { ATTACKS, PUNCH_CHAIN, type AttackDef, type HitDef } from '../combat/att
 import { clamp, dampAngle, wrapAngle } from '../core/math';
 import type { BoxGrid } from '../core/collision';
 
-export type Team = 'universam' | 'razezd' | 'hadi' | 'civil';
+export type Team = 'universam' | 'razezd' | 'hadi' | 'civil' | 'police';
 export type FState = 'free' | 'attack' | 'hit' | 'down' | 'getup' | 'dodge' | 'dead';
 
 /** What the controller (player or AI) wants this frame. Directions are world-space. */
@@ -214,6 +214,27 @@ export class Fighter {
     return { blocked: false, dmg, ko, knockdown: kd };
   }
 
+  /** Hit by something that isn't a fighter (a car). Always knocks down. */
+  takeImpact(fromX: number, fromZ: number, dmg: number, kb: number): HitResult | null {
+    if (this.invuln > 0 || this.grounded) return null;
+    const dx = fromX - this.x, dz = fromZ - this.z;
+    const len = Math.hypot(dx, dz) || 1;
+    this.hp -= dmg;
+    this.hitFlash = 0.15;
+    this.vx -= (dx / len) * kb;
+    this.vz -= (dz / len) * kb;
+    this.attack = null;
+    this.blocking = false;
+    const ko = this.hp <= 0;
+    if (ko) this.hp = 0;
+    this.heading = Math.atan2(dx, dz);
+    this.setState('down');
+    this.anim.play('fall');
+    this.data.ko = ko;
+    this.sinceCombat = 0;
+    return { blocked: false, dmg, ko, knockdown: true };
+  }
+
   /** Fully restore (respawn, new round). */
   revive(hp = this.maxHp) {
     this.hp = hp;
@@ -372,7 +393,7 @@ export class Fighter {
 
   private resolveHit(h: HitDef, done: Set<Fighter>) {
     for (const o of this.arena.fighters) {
-      if (o === this || done.has(o) || o.grounded) continue;
+      if (o === this || done.has(o) || o.grounded || o.data.inCar) continue;
       if (o.team === this.team && o.team !== 'civil' && !this.data.versus) continue;
       const dx = o.x - this.x;
       const dz = o.z - this.z;

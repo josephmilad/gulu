@@ -23,6 +23,9 @@ export class Hud {
   private noticeEl = h('div', 'notice');
   private toastEl = h('div', 'toast');
   private help = h('div', 'help');
+  private stars = h('div', 'stars');
+  private speedo = h('div', 'speedo hidden');
+  private promptEl = h('div', 'prompt hidden');
   private mm: HTMLCanvasElement | null = null;
   private mmBase: HTMLCanvasElement | null = null;
   private tags = new Map<Fighter, { el: HTMLElement; bar: HTMLElement }>();
@@ -51,13 +54,14 @@ export class Hud {
       this.panels.push({ el, hp, hpLag, st, stWrap });
     });
     if (city) {
-      this.stats.append(this.money, this.auth, h('br'), this.zone);
+      this.stats.append(this.stars, this.money, this.auth, h('br'), this.zone);
+      this.root.append(this.speedo, this.promptEl);
       this.root.append(this.stats);
       this.mm = h('canvas', 'minimap');
       this.mm.width = this.mm.height = 210;
       this.root.append(this.mm);
       this.mmBase = this.drawBaseMap(city);
-      this.help.innerHTML = '<b>WASD</b> ходить · <b>Shift</b> бег · <b>ЛКМ/J</b> рука · <b>ПКМ/K</b> нога<br><b>Q</b> блок · <b>E</b> приём · <b>Пробел</b> уклон · <b>Esc</b> пауза';
+      this.help.innerHTML = '<b>WASD</b> ходить · <b>Shift</b> бег · <b>ЛКМ/J</b> рука · <b>ПКМ/K</b> нога<br><b>Q</b> блок · <b>E</b> приём · <b>Пробел</b> уклон · <b>F</b> машина · <b>Esc</b> пауза';
       this.root.append(this.help);
     }
     this.root.append(this.noticeEl, this.toastEl);
@@ -119,6 +123,22 @@ export class Hud {
     el.textContent = blocked ? 'блок' : String(Math.round(amount));
     this.root.append(el);
     this.floats.push({ el, pos: new THREE.Vector3(f.x + (Math.random() - 0.5) * 0.4, 1.9, f.z), t: 0, life: 0.8, rise: 1.2 });
+  }
+
+  setWanted(n: number, flash: boolean) {
+    const html = '★'.repeat(n) + '<i>' + '★'.repeat(3 - n) + '</i>';
+    if (this.stars.innerHTML !== html) this.stars.innerHTML = html;
+    this.stars.classList.toggle('flash', flash && n > 0);
+  }
+
+  setSpeed(kmh: number | null) {
+    this.speedo.classList.toggle('hidden', kmh === null);
+    if (kmh !== null) this.speedo.innerHTML = `${Math.round(kmh)}<small>км/ч</small>`;
+  }
+
+  prompt(text: string | null) {
+    this.promptEl.classList.toggle('hidden', !text);
+    if (text && this.promptEl.innerHTML !== text) this.promptEl.innerHTML = text;
   }
 
   setStats(money: number, auth: number, zone: Zone) {
@@ -196,6 +216,9 @@ export class Hud {
     if (this.mm && this.mmBase) this.drawMinimap(p0, others, camYaw);
   }
 
+  /** Extra blips (police cars) drawn as squares: [x, z, colour]. */
+  blips: [number, number, string][] = [];
+
   private drawMinimap(p: Fighter, others: Fighter[], yaw: number) {
     const g = this.mm!.getContext('2d')!;
     const S = 210;
@@ -213,10 +236,16 @@ export class Hud {
       if (dx * dx + dz * dz > 110 * 110) continue;
       const hostile = o.team === 'razezd' || o.team === 'hadi';
       if (!hostile && o.team === 'civil') continue;
-      g.fillStyle = hostile ? (o.sinceCombat < 6 ? '#ff3030' : ZONE_COLORS[o.team as Zone]) : '#6fe06a';
+      g.fillStyle = o.team === 'police' ? '#5aa0ff' : hostile ? (o.sinceCombat < 6 ? '#ff3030' : ZONE_COLORS[o.team as Zone]) : '#6fe06a';
       g.beginPath();
       g.arc(dx, dz, hostile && o.sinceCombat < 6 ? 4 : 3, 0, Math.PI * 2);
       g.fill();
+    }
+    for (const [bx, bz, col] of this.blips) {
+      const dx = (bx - p.x) * sc, dz = (bz - p.z) * sc;
+      if (dx * dx + dz * dz > 110 * 110) continue;
+      g.fillStyle = col;
+      g.fillRect(dx - 4, dz - 4, 8, 8);
     }
     g.restore();
     // Landmark labels stay upright while the map turns underneath them.

@@ -14,10 +14,11 @@ import { Hud } from '../ui/Hud';
 import { h, uiRoot } from '../ui/dom';
 import { controlsHtml } from '../ui/controls';
 import { ZONE_NAMES, zoneAt, type Hangout, type Zone } from '../world/City';
+import { Streets } from './Streets';
 
 interface Group {
   hang: Hangout;
-  team: Team;
+  team: Zone;
   members: Fighter[];
   respawnAt: number;
   wiped: boolean;
@@ -39,12 +40,13 @@ export class FreeRoamMode implements Mode, Arena, AIWorld {
   players: Fighter[] = [];
   grid;
   city;
-  private cam: FollowCamera;
-  private hud: Hud;
+  cam: FollowCamera;
+  hud: Hud;
+  streets: Streets;
   private groups: Group[] = [];
   private pickups: Pickup[] = [];
   private actorLayer = new THREE.Group();
-  private time = 0;
+  time = 0;
   money = 20;
   authority = 0;
   private zone: Zone = 'universam';
@@ -60,7 +62,7 @@ export class FreeRoamMode implements Mode, Arena, AIWorld {
   /** Soft light that travels with the camera so characters read at night. */
   private fill = new THREE.PointLight(0xffe2c4, 8, 14, 1.5);
 
-  constructor(private app: App, charId: string, private onQuit: () => void) {
+  constructor(public app: App, charId: string, private onQuit: () => void) {
     const w = app.getWorld();
     this.scene = w.scene;
     this.city = w.city;
@@ -72,6 +74,7 @@ export class FreeRoamMode implements Mode, Arena, AIWorld {
     const p = new Fighter({ body: makeBody(app.assets.characters[ch.model], { hero: true }), hp: ch.hp, power: ch.power, speed: ch.speed, special: ch.special, team: 'universam', name: ch.nick, charId: ch.id }, this);
     const s = this.city.spawn;
     p.place(s.x, s.z, s.heading);
+    p.data.isPlayer = true;
     this.add(p);
     this.players.push(p);
     this.cam = new FollowCamera(this.camera, this.grid);
@@ -82,6 +85,7 @@ export class FreeRoamMode implements Mode, Arena, AIWorld {
       this.groups.push({ hang: hg, team: hg.zone, members: [], respawnAt: 0, wiped: false });
     }
     for (let i = 0; i < PED_COUNT; i++) this.spawnPed(true);
+    this.streets = new Streets(this);
 
     const note = new THREE.Mesh(
       new THREE.PlaneGeometry(0.5, 0.25),
@@ -136,10 +140,23 @@ export class FreeRoamMode implements Mode, Arena, AIWorld {
     if (Math.hypot(f.x - l.x, f.z - l.z) < 30) this.hud.bubble(f, text);
   }
 
-  private onKO(att: Fighter, vic: Fighter) {
+  get wanted() {
+    return this.streets?.wanted ?? 0;
+  }
+
+  shake(n: number) {
+    this.cam.shake = Math.max(this.cam.shake, n);
+  }
+
+  onKO(att: Fighter, vic: Fighter) {
     const byPlayer = this.players.includes(att);
-    if (this.players.includes(vic)) return this.wasted();
+    if (this.players.includes(vic)) return this.wasted(att.team === 'police' || this.wanted > 0);
     if (!byPlayer) return;
+    if (vic.team === 'police') {
+      this.streets.addWanted(1, 'Ты вырубил милиционера!');
+      this.dropMoney(vic.x, vic.z, 10 + Math.floor(Math.random() * 15));
+      return;
+    }
     if (vic.team === 'razezd' || vic.team === 'hadi') {
       this.authority += 3;
       this.dropMoney(vic.x, vic.z, 5 + Math.floor(Math.random() * 20));
@@ -157,6 +174,7 @@ export class FreeRoamMode implements Mode, Arena, AIWorld {
       this.authority = Math.max(0, this.authority - 5);
       this.dropMoney(vic.x, vic.z, 1 + Math.floor(Math.random() * 6));
       this.hud.toast('Пацаны так не делают. −5 авторитета');
+      this.streets.addWanted(1);
     }
   }
 
@@ -167,9 +185,14 @@ export class FreeRoamMode implements Mode, Arena, AIWorld {
     this.pickups.push({ mesh: m, value, t: 0 });
   }
 
-  private wasted() {
+  private busted = false;
+
+  private wasted(busted = false) {
     sfx.ko();
-    this.wastedEl = h('div', 'wasted', 'ТЕБЯ ОТШИЛИ<small>Пацаны подберут. Потеряно немного денег.</small>');
+    this.busted = busted;
+    this.wastedEl = h('div', 'wasted', busted
+      ? 'ЗАДЕРЖАН<small>Ночь в отделении. Милиция забрала половину денег.</small>'
+      : 'ТЕБЯ ОТШИЛИ<small>Пацаны подберут. Потеряно немного денег.</small>');
     uiRoot().append(this.wastedEl);
     this.wastedT = 4;
     this.app.timeScale = 0.4;
@@ -180,7 +203,9 @@ export class FreeRoamMode implements Mode, Arena, AIWorld {
     this.wastedEl?.remove();
     this.wastedEl = null;
     this.app.timeScale = 1;
-    this.money = Math.floor(this.money * 0.7);
+    this.money = Math.floor(this.money * (this.busted ? 0.5 : 0.7));
+    this.streets.clearWanted();
+    for (const f of [...this.fighters]) if (f.team === 'police') this.remove(f);
     p.revive();
     p.place(this.city.spawn.x, this.city.spawn.z, this.city.spawn.heading);
     this.cam.snap(p.x, p.z, p.heading);
@@ -195,6 +220,14 @@ export class FreeRoamMode implements Mode, Arena, AIWorld {
   }
 
   // ---------- Population ----------
+  addFighter(f: Fighter) {
+    this.add(f);
+  }
+
+  removeFighter(f: Fighter) {
+    if (this.fighters.includes(f)) this.remove(f);
+  }
+
   private add(f: Fighter) {
     this.fighters.push(f);
     this.actorLayer.add(f.rig.root);
@@ -205,8 +238,8 @@ export class FreeRoamMode implements Mode, Arena, AIWorld {
     this.actorLayer.remove(f.rig.root);
   }
 
-  private spawnNpc(team: Team, role: Role, x: number, z: number, home: { x: number; z: number }) {
-    const spec = team === 'civil' ? civilSpec() : gangSpec(team);
+  spawnNpc(team: Team, role: Role, x: number, z: number, home: { x: number; z: number }) {
+    const spec = team === 'civil' || team === 'police' ? civilSpec() : gangSpec(team);
     const body = makeBody(this.app.assets.charactersLod[spec.model], { tint: spec.tint, tintAmt: spec.tintAmt, scale: spec.scale });
     const name = team === 'civil' ? pick(Math.random, CIVIL_NAMES_M)
       : role === 'ally' ? pick(Math.random, ALLY_NICKS) : pick(Math.random, GANG_NICKS);
@@ -268,6 +301,7 @@ export class FreeRoamMode implements Mode, Arena, AIWorld {
         if ((f.data.deadT as number) > 30 || d > 90) this.remove(f);
         continue;
       }
+      if (brain.role === 'police' && d > 110) this.remove(f);
       if (brain.role === 'ped') {
         if (d > 95) this.remove(f);
         else peds++;
@@ -370,12 +404,21 @@ export class FreeRoamMode implements Mode, Arena, AIWorld {
     if (tgt && (fighting || it.punch || it.kick || it.special) && !it.run) c.face = Math.atan2(tgt.x - p.x, tgt.z - p.z);
     p.data.guard = fighting;
 
+    // Cars, traffic and the militsiya.
+    this.streets.update(dt, it);
+    const driving = !!this.streets.playerCar;
+    if (driving) {
+      c.mx = c.mz = 0;
+      c.punch = c.kick = c.special = c.dodge = c.block = false;
+    }
+
     // AI
     for (const fi of this.fighters) {
       const b = fi.data.brain as Brain | undefined;
       if (b && Math.hypot(fi.x - p.x, fi.z - p.z) < 110) b.update(fi, dt, this);
     }
     for (const fi of this.fighters) {
+      if (fi.data.inCar) continue;
       if (Math.hypot(fi.x - p.x, fi.z - p.z) < 110) fi.update(dt);
     }
 
@@ -411,12 +454,14 @@ export class FreeRoamMode implements Mode, Arena, AIWorld {
       this.hud.notice(ZONE_NAMES[z].toUpperCase(), z === 'universam' ? 'Своя территория' : 'Чужой район. Смотри в оба.', 2);
     }
     this.hud.setStats(this.money, this.authority, z);
-    this.renderOnly(dt, it.lookX, it.lookY, Math.hypot(mx, mz) > 0.1, fighting);
+    const car = this.streets.playerCar;
+    if (car) this.renderOnly(dt, it.lookX, it.lookY, car.speed > 1, false, car.heading);
+    else this.renderOnly(dt, it.lookX, it.lookY, Math.hypot(mx, mz) > 0.1, fighting);
   }
 
-  private renderOnly(dt: number, lookX = 0, lookY = 0, moving = false, fighting = false) {
+  private renderOnly(dt: number, lookX = 0, lookY = 0, moving = false, fighting = false, heading?: number) {
     const p = this.players[0];
-    if (dt > 0) this.cam.update(dt, p.x, p.z, p.heading, moving, lookX, lookY, fighting);
+    if (dt > 0) this.cam.update(dt, p.x, p.z, heading ?? p.heading, moving, lookX, lookY, fighting);
     const cp = this.camera.position;
     this.fill.position.set(p.x + (cp.x - p.x) * 0.4, 3, p.z + (cp.z - p.z) * 0.4);
     this.focus.set(p.x, 0, p.z);
@@ -456,6 +501,7 @@ export class FreeRoamMode implements Mode, Arena, AIWorld {
     this.pauseEl?.remove();
     this.wastedEl?.remove();
     this.scene.remove(this.actorLayer);
+    this.streets.dispose();
     void this.charId;
   }
 }

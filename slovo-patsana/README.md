@@ -45,6 +45,8 @@ You need Node 18 or newer and a browser with WebGL (Chrome, Edge or Firefox).
 | Block | Q / L (hold) | LB |
 | Special | E / U | B |
 | Dodge | Space | A |
+| Get in / out of a car | F (at the driver's door) | RB |
+| Drive | W/S throttle and brake · A/D steer · Space handbrake | stick |
 | Pause | Esc | — |
 
 ## Code layout
@@ -60,6 +62,21 @@ You need Node 18 or newer and a browser with WebGL (Chrome, Edge or Firefox).
 | `src/world/City.ts` | District generator, landmarks, territories, colliders |
 | `src/world/textures.ts` | Every texture is drawn in code: facades, snow, asphalt, signs |
 | `src/game/*Mode.ts` | Menu, character select, free roam |
+
+## Cars and militsiya (step 3)
+
+- **Cars:** VAZ-2106 «Жигули», GAZ-24 «Волга», a Volga taxi and the militsiya UAZ-469, all modelled in code
+  (`src/vehicles/CarModel.ts`). They have clear-coat paint, chrome, quad headlights, brake lights and Soviet
+  «а 12-34 ТА» plates. Parked cars wear a cap of snow.
+- **Driving:** arcade physics with a handbrake slide, adapted from gta7 (MIT). Grip is reduced for the snow.
+  The player's car has working headlights and engine sound. Cars crash into walls and each other, and knock
+  people down.
+- **Traffic:** right-hand lanes on the road grid, random turns at crossings, braking for people and cars,
+  and horns when stuck.
+- **Wanted level (★★★):** you get stars for knocking out passers-by, running people over, stealing a car with
+  someone in it, hitting militsiya, or stealing a militsiya car. UAZs come with sirens and chase you around
+  the grid. Officers get out and fight on foot. If they knock you out, you get «ЗАДЕРЖАН» (arrested) and lose
+  half your money. Stay out of sight long enough and the stars fade.
 
 ## Graphics (step 2)
 

@@ -119,6 +119,87 @@ class Sfx {
     this.thud();
   }
 
+  private engine: { o: OscillatorNode; o2: OscillatorNode; f: BiquadFilterNode; g: GainNode } | null = null;
+
+  /** Continuous engine drone for the player's car; rpm is 0..1. */
+  engineSet(on: boolean, rpm = 0) {
+    const ctx = this.ctx;
+    if (!ctx) return;
+    if (on && !this.engine) {
+      const o = ctx.createOscillator();
+      o.type = 'sawtooth';
+      const o2 = ctx.createOscillator();
+      o2.type = 'square';
+      const f = ctx.createBiquadFilter();
+      f.type = 'lowpass';
+      f.frequency.value = 400;
+      const g = ctx.createGain();
+      g.gain.value = 0;
+      o.connect(f);
+      o2.connect(f);
+      f.connect(g).connect(this.master);
+      o.start();
+      o2.start();
+      this.engine = { o, o2, f, g };
+    }
+    if (!this.engine) return;
+    const t = ctx.currentTime;
+    const e = this.engine;
+    e.o.frequency.setTargetAtTime(38 + rpm * 110, t, 0.08);
+    e.o2.frequency.setTargetAtTime(19 + rpm * 55, t, 0.08);
+    e.f.frequency.setTargetAtTime(300 + rpm * 900, t, 0.1);
+    e.g.gain.setTargetAtTime(on ? 0.06 + rpm * 0.05 : 0, t, 0.1);
+    if (!on) {
+      const old = e;
+      this.engine = null;
+      setTimeout(() => {
+        old.o.stop();
+        old.o2.stop();
+      }, 600);
+    }
+  }
+
+  private sirenNode: { o: OscillatorNode; g: GainNode; lfo: OscillatorNode } | null = null;
+
+  /** Two-tone militsiya siren; volume follows distance (0 = off). */
+  siren(volume: number) {
+    const ctx = this.ctx;
+    if (!ctx) return;
+    if (volume > 0 && !this.sirenNode) {
+      const o = ctx.createOscillator();
+      o.type = 'triangle';
+      o.frequency.value = 700;
+      const lfo = ctx.createOscillator();
+      lfo.type = 'square';
+      lfo.frequency.value = 1.4;
+      const lg = ctx.createGain();
+      lg.gain.value = 180;
+      lfo.connect(lg).connect(o.frequency);
+      const g = ctx.createGain();
+      g.gain.value = 0;
+      o.connect(g).connect(this.master);
+      o.start();
+      lfo.start();
+      this.sirenNode = { o, g, lfo };
+    }
+    if (this.sirenNode) this.sirenNode.g.gain.setTargetAtTime(volume * 0.07, ctx.currentTime, 0.2);
+  }
+
+  crash(strength: number, dist = 0) {
+    const a = this.att(dist);
+    if (a <= 0) return;
+    this.noise(0.4, 'lowpass', 1200, Math.min(1, strength) * 0.8 * a);
+    this.noise(0.25, 'highpass', 2500, Math.min(1, strength) * 0.4 * a);
+    this.tone(90, 0.3, 0.5 * a, 'sine', 40);
+  }
+
+  horn(dist = 0) {
+    const a = this.att(dist);
+    if (a <= 0) return;
+    this.tone(392, 0.35, 0.12 * a, 'square');
+    this.tone(330, 0.35, 0.12 * a, 'square');
+  }
+
   startWind() {
     const ctx = this.ctx;
     if (!ctx || this.wind) return;

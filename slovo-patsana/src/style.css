@@ -110,3 +110,12 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #05060a; col
 .controls { display: grid; grid-template-columns: auto auto; gap: 6px 26px; font-size: 18px; margin-bottom: 24px; }
 .controls div:nth-child(odd) { text-align: right; color: var(--muted); }
 .loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--display); font-size: 28px; background: #05060a; color: var(--paper); letter-spacing: 0.2em; }
+
+.stars { font-size: 30px; color: #fff; letter-spacing: 2px; text-shadow: 2px 2px 0 #000; }
+.stars i { font-style: normal; color: rgba(255,255,255,0.18); }
+.stars.flash { animation: starflash 0.5s infinite; }
+@keyframes starflash { 50% { color: #5aa0ff; } }
+.speedo { position: absolute; right: 26px; bottom: 70px; font-family: var(--display); font-size: 54px; color: #fff; text-shadow: 3px 3px 0 #000; text-align: right; }
+.speedo small { font-size: 18px; margin-left: 6px; color: var(--gold); }
+.prompt { position: absolute; left: 50%; bottom: 170px; transform: translateX(-50%); background: rgba(5,6,10,0.72); padding: 8px 16px; font-size: 18px; border: 1px solid rgba(255,255,255,0.2); }
+.prompt b { color: var(--gold); }

@@ -25,17 +25,21 @@ export class FollowCamera {
     this.curDist = this.dist;
   }
 
+  /** Driving: further back, lower target, swings behind the car quickly. */
+  car = false;
+
   update(dt: number, x: number, z: number, heading: number, moving: boolean, lookX: number, lookY: number, combat: boolean) {
     this.target.x = damp(this.target.x, x, 12, dt);
     this.target.z = damp(this.target.z, z, 12, dt);
-    this.target.y = 1.55;
+    this.target.y = this.car ? 1.3 : 1.55;
     if (Math.abs(lookX) + Math.abs(lookY) > 1e-4) this.idle = 0;
     else this.idle += dt;
     this.yaw += lookX;
     this.pitch = clamp(this.pitch - lookY, -0.25, 1.2);
     // Swing in behind the player after a moment without manual camera input.
-    if (moving && !combat && this.idle > 1.2) this.yaw = dampAngle(this.yaw, heading + Math.PI, 1.6, dt);
-    const want = combat ? this.dist + 0.8 : this.dist;
+    if (moving && !combat && this.idle > (this.car ? 0.6 : 1.2)) this.yaw = dampAngle(this.yaw, heading + Math.PI, this.car ? 3.5 : 1.6, dt);
+    if (this.car && this.idle > 0.6) this.pitch += (0.22 - this.pitch) * Math.min(1, dt * 2);
+    const want = this.car ? 8 : combat ? this.dist + 0.8 : this.dist;
     const cx = Math.sin(this.yaw) * Math.cos(this.pitch);
     const cy = Math.sin(this.pitch);
     const cz = Math.cos(this.yaw) * Math.cos(this.pitch);

@@ -3,12 +3,14 @@ import { zoneAt, type City } from '../world/City';
 import { pick } from '../core/math';
 import { BARKS } from './looks';
 
-export type Role = 'ped' | 'gang' | 'ally' | 'duel';
+export type Role = 'ped' | 'gang' | 'ally' | 'duel' | 'police';
 
 export interface AIWorld {
   fighters: Fighter[];
   players: Fighter[];
   city: City | null;
+  /** Player's wanted level (militsiya only chase when it's above zero). */
+  wanted?: number;
   bark(f: Fighter, text: string): void;
 }
 
@@ -67,6 +69,7 @@ export class Brain {
     if (this.role === 'duel') return true;
     if (this.role === 'gang') return (o.team === 'universam') && o.alive;
     if (this.role === 'ally') return (o.team === 'razezd' || o.team === 'hadi') && o.alive;
+    if (this.role === 'police') return o.team === 'universam' && !!o.data.isPlayer && o.alive;
     return false;
   }
 
@@ -90,6 +93,8 @@ export class Brain {
           this.say(w, f, BARKS.pedAngry);
           this.engage(f, la, w);
         } else this.flee(la, w, f);
+      } else if (this.role === 'police') {
+        this.engage(f, la, w);
       } else if (this.role !== 'ally' || la.team !== 'universam') {
         if (this.role === 'gang') this.say(w, f, BARKS.gangHit);
         this.engage(f, la, w);
@@ -143,7 +148,7 @@ export class Brain {
       return;
     }
     for (const o of w.fighters) {
-      if (!this.hostileTo(o) || o.grounded) continue;
+      if (!this.hostileTo(o) || o.grounded || o.data.inCar) continue;
       const d = dist(o, f);
       if (this.role === 'gang') {
         const zone = zoneAt(o.x, o.z);
@@ -157,6 +162,12 @@ export class Brain {
         const nearPlayer = w.players.some((p) => dist(p, o) < 8 && (p.sinceCombat < 3 || o.sinceCombat < 3));
         if (d < 18 && nearPlayer) {
           this.say(w, f, BARKS.allyJoin);
+          this.engage(f, o, w);
+          return;
+        }
+      } else if (this.role === 'police') {
+        if ((w.wanted ?? 0) > 0 && d < 40) {
+          this.say(w, f, BARKS.police);
           this.engage(f, o, w);
           return;
         }
@@ -227,7 +238,8 @@ export class Brain {
   private fight(f: Fighter, dt: number, w: AIWorld) {
     const t = this.target;
     const c = f.ctrl;
-    if (!t || !t.alive || (this.role === 'gang' && dist(f, this.home) > 45) || (this.role === 'ped' && this.modeT > 12)) {
+    const policeDone = this.role === 'police' && (w.wanted ?? 0) === 0;
+    if (policeDone || !t || !t.alive || (this.role === 'gang' && dist(f, this.home) > 45) || (this.role === 'ped' && this.modeT > 12)) {
       this.target = null;
       this.mode = this.role === 'ped' ? 'walk' : 'return';
       this.node = -1;
