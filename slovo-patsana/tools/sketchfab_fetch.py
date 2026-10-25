@@ -1,9 +1,11 @@
 """
 Download CC-BY models from Sketchfab and turn them into game-ready GLBs.
 
-    SKETCHFAB_TOKEN=... python sketchfab_fetch.py <uid> <out.glb> [target_faces] [length_m]
+    python sketchfab_fetch.py <uid> <out.glb> [target_faces] [length_m]
 
-Needs a (free) Sketchfab account's API token in SKETCHFAB_TOKEN. The GLB is
+Needs a (free) Sketchfab account's API token: either in SKETCHFAB_TOKEN, or
+configured as a network secret that adds "Authorization: Token …" to
+requests to api.sketchfab.com (then the script sends no header itself). The GLB is
 decimated to target_faces, scaled so its longest side is length_m metres,
 rested on y = 0 and centred. Run it with Blender's Python (bpy) for the
 optimisation step; plain Python just downloads the original archive.
@@ -13,8 +15,9 @@ import json, os, sys, urllib.request, zipfile, tempfile, glob
 uid, out = sys.argv[1], sys.argv[2]
 faces = int(sys.argv[3]) if len(sys.argv) > 3 else 40000
 length = float(sys.argv[4]) if len(sys.argv) > 4 else 0
-token = os.environ['SKETCHFAB_TOKEN']
-req = urllib.request.Request(f'https://api.sketchfab.com/v3/models/{uid}/download', headers={'Authorization': f'Token {token}'})
+token = os.environ.get('SKETCHFAB_TOKEN')
+headers = {'Authorization': f'Token {token}'} if token else {}
+req = urllib.request.Request(f'https://api.sketchfab.com/v3/models/{uid}/download', headers=headers)
 info = json.load(urllib.request.urlopen(req))
 url = (info.get('glb') or info['gltf'])['url']
 tmp = tempfile.mkdtemp()
