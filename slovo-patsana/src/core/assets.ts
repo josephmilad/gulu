@@ -66,7 +66,7 @@ export async function loadAssets(onProgress: (p: number, label: string) => void)
     const q = gltf.loadAsync(`${BASE}characters/${c}.glb`).then((g) => {
       a.characters[c] = g;
       a.charactersLod[c] = g;
-    }).catch(() => console.info('no model yet:', c)).finally(() => tick('персонажи'));
+    }).catch((e) => console.warn('character model not loaded:', c, e)).finally(() => tick('персонажи'));
     jobs.push(q);
   }
   for (const p of PROP_FILES) {

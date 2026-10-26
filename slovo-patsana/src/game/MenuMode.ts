@@ -58,7 +58,7 @@ export class MenuMode implements Mode {
     this.pressStart = h('div', 'press-start', 'НАЖМИ ЛЮБУЮ КЛАВИШУ');
     this.root.append(this.started ? list : this.pressStart);
     this.list = list;
-    this.root.append(h('div', 'menu-foot', 'Фанатская игра по мотивам сериала «Слово пацана». Все персонажи — стилизация.'));
+    this.root.append(h('div', 'menu-foot', 'Фанатская игра по мотивам сериала «Слово пацана». Все персонажи — стилизация. · версия 4: сюжет и бонусные персонажи'));
     uiRoot().append(this.root);
     this.select(0);
     addEventListener('keydown', this.keyHandler);
