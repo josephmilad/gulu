@@ -33,6 +33,34 @@ You need Node 18 or newer and a browser with WebGL (Chrome, Edge or Firefox).
 - **HUD**: health, stamina (yellow means the special is ready), a minimap with territories, name tags,
   speech bubbles and damage numbers.
 
+## Story missions and new characters (step 4)
+
+- **Сюжет** in the main menu starts the district with three story missions. A yellow marker (also on
+  the minimap) shows where the next one starts. Progress is saved in the browser.
+  1. **«Пришиться»**: at the school yard, beat two young Universam kids in a fair fight, then get to the
+     gym before the gang meeting starts (timer).
+  2. **«Видеосалон»**: with two Universam allies, hold off two waves of Razyezd at the video salon. The
+     second wave brings their leader, Жёлтый.
+  3. **«Каток»**: grab a car and race to the rink in 80 seconds, then get a friend out of a Hadi Taktash
+     ambush before they knock him out.
+  Dialogue advances by itself or with Enter. If you get knocked out the mission fails, and you can retry
+  from the marker.
+- **Bonus characters**: two playable characters made from photos, each in his own clothes (a beige
+  Harrington jacket with sunglasses, and a grey hoodie with glasses). On the select screen you can set
+  their **name, power, speed, health, technique (stamina recovery)** and **special move**, using the
+  mouse or W/S + Q/E. These are saved in the browser.
+- **Марат, Турбо and Зима** are in the roster code, with their own specials (Подкат, Турбо-удар,
+  Апперкот) and passives. Each one shows up as soon as its model is in `public/assets/characters/`
+  (`marat.glb`, `turbo.glb`, `zima.glb`). The concept art is ready; the 3D conversion is still waiting.
+- New character pipeline: concept image (Higgsfield GPT Image) → image-to-3D (SAM 3D) →
+  `tools/autorig.py`, which finds the joints from the A-pose mesh, builds a Mixamo-named skeleton and
+  computes smooth skin weights → `tools/retarget.py`, which bakes the full animation set:
+
+  ```bash
+  python tools/autorig.py mesh.glb rigged.glb 1.78
+  python tools/retarget.py rigged.glb public/assets/characters/NAME.glb UAL1_Standard.glb UAL2_Standard.glb kick_src.glb
+  ```
+
 ## Controls
 
 | Action | Keyboard / mouse | Gamepad |

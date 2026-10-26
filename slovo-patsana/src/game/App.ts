@@ -8,7 +8,7 @@ import { Input } from '../core/input';
 import { GradeEffect } from '../render/GradeEffect';
 import { City } from '../world/City';
 import { Environment } from '../world/Environment';
-import { CHARACTERS } from '../actors/characters';
+import { ROSTER, loadBonus, setRoster } from '../actors/characters';
 import { makeBody } from '../actors/SkinnedBody';
 import { setCarModels } from '../vehicles/CarModel';
 import type { Assets } from '../core/assets';
@@ -56,6 +56,8 @@ export class App {
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.input = new Input(canvas);
     setCarModels(assets.vehicles);
+    setRoster((m) => !!assets.characters[m]);
+    loadBonus();
 
     const pm = new THREE.PMREMGenerator(this.renderer);
     this.envMap = pm.fromEquirectangular(assets.hdr).texture;
@@ -199,7 +201,7 @@ export class App {
     const g = c.getContext('2d')!;
     const prevTone = this.renderer.toneMapping;
     this.renderer.toneMapping = THREE.AgXToneMapping;
-    for (const ch of CHARACTERS) {
+    for (const ch of ROSTER) {
       const body = makeBody(this.assets.characters[ch.model], { hero: true });
       body.anim.update(0.016);
       body.root.rotation.y = 0.3;

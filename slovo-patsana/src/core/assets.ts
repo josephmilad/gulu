@@ -5,6 +5,8 @@ import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 const BASE = import.meta.env.BASE_URL + 'assets/';
 
 export const CHARACTER_FILES = ['vova', 'palto', 'kashchey'] as const;
+/** Newer playable characters: one model each (no crowd LOD); a missing file just leaves them out. */
+export const EXTRA_CHARACTER_FILES = ['marat', 'turbo', 'zima', 'bonus1', 'bonus2'] as const;
 export const NPC_FILES = ['eric', 'carla', 'claudia', 'nathan', 'sophia', 'oldcoat'] as const;
 export const VEHICLE_FILES = ['zhiguli', 'zhiguli_police', 'volga', 'uaz', 'zil'] as const;
 export const PROP_FILES = [
@@ -42,7 +44,7 @@ export async function loadAssets(onProgress: (p: number, label: string) => void)
   const imgLoader = new THREE.ImageLoader();
   let done = 0;
   const jobs: Promise<unknown>[] = [];
-  const total = CHARACTER_FILES.length * 2 + NPC_FILES.length + VEHICLE_FILES.length + PROP_FILES.length + TEXTURE_SETS.length * 3 + 1;
+  const total = CHARACTER_FILES.length * 2 + EXTRA_CHARACTER_FILES.length + NPC_FILES.length + VEHICLE_FILES.length + PROP_FILES.length + TEXTURE_SETS.length * 3 + 1;
   const tick = (label: string) => onProgress(++done / total, label);
   const track = <T>(p: Promise<T>, label: string) => {
     const q = p.then((v) => {
@@ -59,6 +61,13 @@ export async function loadAssets(onProgress: (p: number, label: string) => void)
   for (const c of CHARACTER_FILES) {
     track(gltf.loadAsync(`${BASE}characters/${c}.glb`), 'персонажи').then((g) => (a.characters[c] = g));
     track(gltf.loadAsync(`${BASE}characters/${c}_lod.glb`), 'прохожие').then((g) => (a.charactersLod[c] = g));
+  }
+  for (const c of EXTRA_CHARACTER_FILES) {
+    const q = gltf.loadAsync(`${BASE}characters/${c}.glb`).then((g) => {
+      a.characters[c] = g;
+      a.charactersLod[c] = g;
+    }).catch(() => console.info('no model yet:', c)).finally(() => tick('персонажи'));
+    jobs.push(q);
   }
   for (const p of PROP_FILES) {
     track(gltf.loadAsync(`${BASE}props/${p}.glb`), 'двор').then((g) => (a.props[p] = g.scene));

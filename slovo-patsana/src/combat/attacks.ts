@@ -51,6 +51,21 @@ export const ATTACKS: Record<string, AttackDef> = {
     hits: [{ t: 0.52, dmg: 30, range: 1.5, arc: 1.2, kb: 8, knockdown: true, unblockable: true }],
     move: [0.4, 0.55, 3], stamina: 35, chainAt: 0.9, kind: 'special',
   }),
+  sweep: A({
+    id: 'sweep', clip: 'roll', dur: 0.6,
+    hits: [{ t: 0.14, until: 0.42, dmg: 11, range: 1.25, arc: 1.2, kb: 5, knockdown: true }],
+    move: [0, 0.45, 8.5], stamina: 28, chainAt: 0.55, kind: 'special',
+  }),
+  turbokick: A({
+    id: 'turbokick', clip: 'kick', dur: 0.72,
+    hits: [{ t: 0.25, dmg: 22, range: 1.9, arc: 0.8, kb: 9, knockdown: true }],
+    move: [0, 0.22, 5], stamina: 32, chainAt: 0.65, kind: 'special',
+  }),
+  uppercut: A({
+    id: 'uppercut', clip: 'hook', dur: 0.55,
+    hits: [{ t: 0.21, dmg: 21, range: 1.3, arc: 1.0, kb: 6, knockdown: true }],
+    move: [0.02, 0.2, 3.5], stamina: 30, chainAt: 0.5, kind: 'special',
+  }),
 };
 
 export const PUNCH_CHAIN = ['jab', 'cross', 'hook'];

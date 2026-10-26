@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clamp } from '../core/math';
-import { ATTACKS } from '../combat/attacks';
+import { ATTACKS, type AttackDef } from '../combat/attacks';
 
 /**
  * A realistic, skinned character (Higgsfield/Meshy model with Quaternius
@@ -123,7 +123,7 @@ export class SkinnedAnimator {
   }
 
   /** Play a one-shot or held action by logical name. */
-  play(name: string) {
+  play(name: string, atk?: AttackDef) {
     if (name === 'flurry') {
       this.flurry = { t: 0, i: 0 };
       this.oneName = 'flurry';
@@ -132,13 +132,11 @@ export class SkinnedAnimator {
     }
     this.flurry = null;
     const clipName = name === 'hit' ? (Math.random() < 0.5 ? 'hit_head' : 'hit_chest') : ALIAS[name] ?? name;
-    let hitT: number | undefined;
-    const atk = ATTACKS[name];
-    if (atk) hitT = atk.hits[0].t;
-    this.startClip(clipName, name, hitT);
+    const a = atk ?? ATTACKS[name];
+    this.startClip(clipName, name, a?.hits[0].t, a?.dur);
   }
 
-  private startClip(clipName: string, logical: string, hitAt?: number) {
+  private startClip(clipName: string, logical: string, hitAt?: number, dur?: number) {
     const a = this.actions.get(clipName);
     if (!a) return;
     const clip = a.getClip();
@@ -152,6 +150,7 @@ export class SkinnedAnimator {
     let scale = 1;
     const impact = this.impacts[clipName];
     if (hitAt && impact) scale = clamp(impact / hitAt, 0.6, 4);
+    else if (dur) scale = clamp(clip.duration / dur, 0.6, 4);
     else if (logical === 'getup') scale = clip.duration / 0.75;
     else if (logical === 'dodge') scale = clip.duration / 0.4;
     else if (logical === 'hit' || logical === 'blockHit') scale = 1.1;

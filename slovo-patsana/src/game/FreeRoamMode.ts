@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { App, Mode } from './App';
 import { Fighter, type Arena, type HitResult, type Team } from '../actors/Fighter';
 import { Brain, type AIWorld, type Role } from '../actors/ai';
-import { CHARACTERS } from '../actors/characters';
+import { callName, charById, fighterOpts, fullTitle } from '../actors/characters';
 import { ALLY_NICKS, BARKS, CIVIL_NAMES_F, CIVIL_NAMES_M, GANG_NICKS, civilSpec, gangSpec } from '../actors/looks';
 import { makeBody } from '../actors/SkinnedBody';
 import { ATTACKS, type HitDef } from '../combat/attacks';
@@ -15,6 +15,7 @@ import { h, uiRoot } from '../ui/dom';
 import { controlsHtml } from '../ui/controls';
 import { ZONE_NAMES, zoneAt, type Hangout, type Zone } from '../world/City';
 import { Streets } from './Streets';
+import { Story } from './Story';
 
 interface Group {
   hang: Hangout;
@@ -62,7 +63,9 @@ export class FreeRoamMode implements Mode, Arena, AIWorld {
   /** Soft light that travels with the camera so characters read at night. */
   private fill = new THREE.PointLight(0xffe2c4, 8, 14, 1.5);
 
-  constructor(public app: App, charId: string, private onQuit: () => void) {
+  story: Story | null = null;
+
+  constructor(public app: App, charId: string, private onQuit: () => void, opts: { story?: boolean } = {}) {
     const w = app.getWorld();
     this.scene = w.scene;
     this.city = w.city;
@@ -70,8 +73,8 @@ export class FreeRoamMode implements Mode, Arena, AIWorld {
     this.charId = charId;
     this.scene.add(this.actorLayer);
     this.actorLayer.add(this.fill);
-    const ch = CHARACTERS.find((c) => c.id === charId)!;
-    const p = new Fighter({ body: makeBody(app.assets.characters[ch.model], { hero: true }), hp: ch.hp, power: ch.power, speed: ch.speed, special: ch.special, team: 'universam', name: ch.nick, charId: ch.id }, this);
+    const ch = charById(charId);
+    const p = new Fighter({ body: makeBody(app.assets.characters[ch.model], { hero: true }), ...fighterOpts(ch), team: 'universam', name: callName(ch) }, this);
     const s = this.city.spawn;
     p.place(s.x, s.z, s.heading);
     p.data.isPlayer = true;
@@ -79,13 +82,14 @@ export class FreeRoamMode implements Mode, Arena, AIWorld {
     this.players.push(p);
     this.cam = new FollowCamera(this.camera, this.grid);
     this.cam.snap(p.x, p.z, p.heading);
-    this.hud = new Hud([{ f: p, portrait: app.portraits[ch.id], title: ch.name === ch.nick ? ch.name : `${ch.name} «${ch.nick}»` }], this.city);
+    this.hud = new Hud([{ f: p, portrait: app.portraits[ch.id], title: fullTitle(ch) }], this.city);
 
     for (const hg of this.city.hangouts) {
       this.groups.push({ hang: hg, team: hg.zone, members: [], respawnAt: 0, wiped: false });
     }
     for (let i = 0; i < PED_COUNT; i++) this.spawnPed(true);
     this.streets = new Streets(this);
+    if (opts.story) this.story = new Story(this, charId);
 
     const note = new THREE.Mesh(
       new THREE.PlaneGeometry(0.5, 0.25),
@@ -98,7 +102,7 @@ export class FreeRoamMode implements Mode, Arena, AIWorld {
     setTimeout(() => this.tipEl.classList.add('hidden'), 9000);
     addEventListener('keydown', this.keyHandler);
     document.addEventListener('pointerlockchange', this.onLockChange);
-    this.hud.notice(ch.name === ch.nick ? ch.name.toUpperCase() : ch.name.toUpperCase() + ' «' + ch.nick.toUpperCase() + '»', 'Район Универсама. Держи слово.', 3.5);
+    this.hud.notice(fullTitle(ch).toUpperCase(), 'Район Универсама. Держи слово.', 3.5);
     sfx.stopMusic();
     sfx.unlock();
     sfx.startWind();
@@ -189,6 +193,7 @@ export class FreeRoamMode implements Mode, Arena, AIWorld {
 
   private wasted(busted = false) {
     sfx.ko();
+    this.story?.onWasted();
     this.busted = busted;
     this.wastedEl = h('div', 'wasted', busted
       ? 'ЗАДЕРЖАН<small>Ночь в отделении. Милиция забрала половину денег.</small>'
@@ -416,6 +421,7 @@ export class FreeRoamMode implements Mode, Arena, AIWorld {
 
     // Cars, traffic and the militsiya.
     this.streets.update(dt, it);
+    this.story?.update(dt);
     const driving = !!this.streets.playerCar;
     if (driving) {
       c.mx = c.mz = 0;
@@ -513,6 +519,7 @@ export class FreeRoamMode implements Mode, Arena, AIWorld {
     this.wastedEl?.remove();
     this.scene.remove(this.actorLayer);
     this.streets.dispose();
+    this.story?.dispose();
     void this.charId;
   }
 }

@@ -4,6 +4,16 @@ import { h, uiRoot } from '../ui/dom';
 import { sfx } from '../audio/sfx';
 import { controlsHtml } from '../ui/controls';
 
+function storyNote() {
+  let n = 0;
+  try {
+    n = Number(localStorage.getItem('sp-story')) || 0;
+  } catch {
+    /* no storage */
+  }
+  return n >= 3 ? 'пройден · 3/3 миссии' : `миссии · пройдено ${n}/3`;
+}
+
 interface Item {
   label: string;
   note?: string;
@@ -25,7 +35,7 @@ export class MenuMode implements Mode {
   private focus = new THREE.Vector3();
   private keyHandler = (e: KeyboardEvent) => this.onKey(e);
 
-  constructor(private app: App, private onPlay: (players: 1 | 2, mode: 'free' | 'versus' | 'cpu') => void, alreadyStarted = false) {
+  constructor(private app: App, private onPlay: (players: 1 | 2, mode: 'free' | 'versus' | 'cpu' | 'story') => void, alreadyStarted = false) {
     const w = app.getWorld();
     this.scene = w.scene;
     this.started = alreadyStarted;
@@ -33,7 +43,7 @@ export class MenuMode implements Mode {
       { label: 'Свободная игра', note: 'район, драки, авторитет', action: () => this.onPlay(1, 'free') },
       { label: 'Стенка на стенку: против компьютера', note: '1 на 1, каток', action: () => this.onPlay(1, 'cpu') },
       { label: 'Стенка на стенку: два игрока', note: 'одна клавиатура или геймпады', action: () => this.onPlay(2, 'versus') },
-      { label: 'Сюжет', note: 'скоро · миссии', disabled: true, action: () => {} },
+      { label: 'Сюжет', note: storyNote(), action: () => this.onPlay(1, 'story') },
       { label: 'Управление', action: () => this.showControls() },
     ];
     this.root.append(h('h1', 'title', 'СЛОВО<br>ПАЦАНА'), h('div', 'subtitle', 'УЛИЦЫ КАЗАНИ · 1989'));

@@ -30,6 +30,8 @@ export interface FighterOpts {
   team: Team;
   name: string;
   charId?: string;
+  /** Stamina regeneration multiplier (technique). */
+  regen?: number;
 }
 
 export interface HitResult {
@@ -63,6 +65,7 @@ export class Fighter {
   stamina = 100;
   power: number;
   moveMul: number;
+  regen: number;
   special: string | null;
   team: Team;
   name: string;
@@ -94,6 +97,7 @@ export class Fighter {
     this.hp = this.maxHp = opts.hp;
     this.power = opts.power ?? 1;
     this.moveMul = opts.speed ?? 1;
+    this.regen = opts.regen ?? 1;
     this.special = opts.special ?? null;
     this.team = opts.team;
     this.name = opts.name;
@@ -134,7 +138,7 @@ export class Fighter {
     this.hitDone = a.hits.map(() => new Set());
     this.stamina = Math.max(0, this.stamina - a.stamina);
     this.setState('attack');
-    this.anim.play(a.clip);
+    this.anim.play(a.clip, a);
     this.arena.onWhiff(this);
     this.sinceCombat = 0;
   }
@@ -159,6 +163,7 @@ export class Fighter {
   get dmgMul() {
     let m = this.power;
     if (this.charId === 'palto') m *= 1 + 0.6 * (1 - this.hp / this.maxHp);
+    if (this.charId === 'turbo' && this.attack?.kind === 'kick') m *= 1.25;
     return m;
   }
 
@@ -253,7 +258,9 @@ export class Fighter {
     this.comboTimer -= dt;
     this.invuln = Math.max(0, this.invuln - dt);
     this.hitFlash = Math.max(0, this.hitFlash - dt);
-    if (this.state !== 'attack' && this.state !== 'dodge') this.stamina = Math.min(100, this.stamina + dt * (this.blocking ? 8 : 20));
+    if (this.state !== 'attack' && this.state !== 'dodge') this.stamina = Math.min(100, this.stamina + dt * (this.blocking ? 8 : 20) * this.regen);
+    // Zima's passive: he gets his breath (and health) back between fights.
+    if (this.charId === 'zima' && this.alive && this.sinceCombat > 4) this.hp = Math.min(this.maxHp, this.hp + dt * 3);
 
     let wantVX = 0;
     let wantVZ = 0;
@@ -262,8 +269,9 @@ export class Fighter {
     switch (this.state) {
       case 'free': {
         this.blocking = c.block;
-        if (c.dodge && this.stamina >= 15) {
-          this.stamina -= 15;
+        const dodgeCost = this.charId === 'marat' ? 6 : 15;
+        if (c.dodge && this.stamina >= dodgeCost) {
+          this.stamina -= dodgeCost;
           this.setState('dodge');
           this.invuln = 0.3;
           let dx = c.mx, dz = c.mz;

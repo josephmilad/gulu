@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { App, Mode } from './App';
 import { Fighter, type Arena, type HitResult } from '../actors/Fighter';
 import { Brain, type AIWorld } from '../actors/ai';
-import { CHARACTERS, type CharacterDef } from '../actors/characters';
+import { callName, charById, fighterOpts, fullTitle, type CharacterDef } from '../actors/characters';
 import { makeBody, type Body } from '../actors/SkinnedBody';
 import { civilSpec } from '../actors/looks';
 import type { HitDef } from '../combat/attacks';
@@ -58,12 +58,12 @@ export class VersusMode implements Mode, Arena, AIWorld {
     this.center = new THREE.Vector3(c.x, 0, c.z);
     this.bounds = { minX: c.x - 19, maxX: c.x + 19, minZ: c.z - 10.5, maxZ: c.z + 10.5 };
     this.schemes = cpu ? ['kbm'] : ['kbm', 'arrows'];
-    this.defs = ids.map((id) => CHARACTERS.find((ch) => ch.id === id)!);
+    this.defs = ids.map(charById);
     this.defs.forEach((ch, i) => {
       const f = new Fighter({
         body: makeBody(app.assets.characters[ch.model], { hero: true }),
-        hp: ch.hp, power: ch.power, speed: ch.speed, special: ch.special,
-        team: i === 0 ? 'razezd' : 'hadi', name: ch.nick, charId: ch.id,
+        ...fighterOpts(ch),
+        team: i === 0 ? 'razezd' : 'hadi', name: callName(ch),
       }, this);
       f.data.versus = true;
       f.data.guard = true;
@@ -126,7 +126,7 @@ export class VersusMode implements Mode, Arena, AIWorld {
       const por = h('div', 'portrait');
       por.style.backgroundImage = `url(${this.app.portraits[ch.id]})`;
       const col = h('div', 'vs-col');
-      const name = h('div', 'vs-name', ch.name === ch.nick ? ch.name : `${ch.name} «${ch.nick}»`);
+      const name = h('div', 'vs-name', fullTitle(ch));
       const hpw = h('div', 'vs-hp');
       const lag = h('b');
       const hp = h('i');

@@ -34,6 +34,8 @@ export class Brain {
   /** 0..1 — how aggressive/skilled; versus CPU difficulty uses this. */
   skill: number;
   idleAnim: string | null = null;
+  /** Story enemies: pick fights anywhere, not only on home turf. */
+  hunt = false;
 
   constructor(public role: Role, home: { x: number; z: number }, skill = 0.5) {
     this.home = { ...home };
@@ -68,7 +70,7 @@ export class Brain {
   private hostileTo(o: Fighter) {
     if (this.role === 'duel') return true;
     if (this.role === 'gang') return (o.team === 'universam') && o.alive;
-    if (this.role === 'ally') return (o.team === 'razezd' || o.team === 'hadi') && o.alive;
+    if (this.role === 'ally') return (o.team === 'razezd' || o.team === 'hadi') && o.alive && !o.data.spar;
     if (this.role === 'police') return o.team === 'universam' && !!o.data.isPlayer && o.alive;
     return false;
   }
@@ -152,7 +154,7 @@ export class Brain {
       const d = dist(o, f);
       if (this.role === 'gang') {
         const zone = zoneAt(o.x, o.z);
-        if (d < 11 && zone === f.team) {
+        if ((d < 11 && zone === f.team) || (this.hunt && d < 40)) {
           this.say(w, f, BARKS.gangAggro);
           this.engage(f, o, w);
           return;

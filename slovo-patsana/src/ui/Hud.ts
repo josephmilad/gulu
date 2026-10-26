@@ -218,6 +218,8 @@ export class Hud {
 
   /** Extra blips (police cars) drawn as squares: [x, z, colour]. */
   blips: [number, number, string][] = [];
+  /** Mission target: a yellow marker, pinned to the map edge when off-screen. */
+  target: { x: number; z: number } | null = null;
 
   private drawMinimap(p: Fighter, others: Fighter[], yaw: number) {
     const g = this.mm!.getContext('2d')!;
@@ -246,6 +248,30 @@ export class Hud {
       if (dx * dx + dz * dz > 110 * 110) continue;
       g.fillStyle = col;
       g.fillRect(dx - 4, dz - 4, 8, 8);
+    }
+    if (this.target) {
+      let dx = (this.target.x - p.x) * sc, dz = (this.target.z - p.z) * sc;
+      const d = Math.hypot(dx, dz);
+      const edge = d > 92;
+      if (edge) {
+        dx *= 92 / d;
+        dz *= 92 / d;
+      }
+      g.save();
+      g.translate(dx, dz);
+      g.rotate(-yaw);
+      g.fillStyle = '#ffc83a';
+      g.strokeStyle = '#000';
+      g.lineWidth = 2;
+      g.beginPath();
+      g.moveTo(0, -8);
+      g.lineTo(7, 0);
+      g.lineTo(0, 8);
+      g.lineTo(-7, 0);
+      g.closePath();
+      g.fill();
+      g.stroke();
+      g.restore();
     }
     g.restore();
     // Landmark labels stay upright while the map turns underneath them.
