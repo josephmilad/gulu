@@ -3,6 +3,7 @@ import type { App, Mode } from './App';
 import { h, uiRoot } from '../ui/dom';
 import { sfx } from '../audio/sfx';
 import { controlsHtml } from '../ui/controls';
+import { goFullscreen, isTouch } from '../core/device';
 
 function storyNote() {
   let n = 0;
@@ -42,7 +43,7 @@ export class MenuMode implements Mode {
     this.items = [
       { label: 'Свободная игра', note: 'район, драки, авторитет', action: () => this.onPlay(1, 'free') },
       { label: 'Стенка на стенку: против компьютера', note: '1 на 1, каток', action: () => this.onPlay(1, 'cpu') },
-      { label: 'Стенка на стенку: два игрока', note: 'одна клавиатура или геймпады', action: () => this.onPlay(2, 'versus') },
+      ...(isTouch ? [] : [{ label: 'Стенка на стенку: два игрока', note: 'одна клавиатура или геймпады', action: () => this.onPlay(2, 'versus') }]),
       { label: 'Сюжет', note: storyNote(), action: () => this.onPlay(1, 'story') },
       { label: 'Управление', action: () => this.showControls() },
     ];
@@ -55,14 +56,17 @@ export class MenuMode implements Mode {
       list.append(b);
       this.btns.push(b);
     });
-    this.pressStart = h('div', 'press-start', 'НАЖМИ ЛЮБУЮ КЛАВИШУ');
+    this.pressStart = h('div', 'press-start', isTouch ? 'КОСНИСЬ ЭКРАНА' : 'НАЖМИ ЛЮБУЮ КЛАВИШУ');
     this.root.append(this.started ? list : this.pressStart);
     this.list = list;
     this.root.append(h('div', 'menu-foot', 'Фанатская игра по мотивам сериала «Слово пацана». Все персонажи — стилизация. · версия 4: сюжет и бонусные персонажи'));
     uiRoot().append(this.root);
     this.select(0);
     addEventListener('keydown', this.keyHandler);
-    this.root.addEventListener('mousedown', () => this.begin());
+    this.root.addEventListener('pointerdown', () => {
+      goFullscreen();
+      this.begin();
+    });
     if (this.started) sfx.startMusic();
   }
   private pressStart: HTMLElement;
@@ -94,7 +98,7 @@ export class MenuMode implements Mode {
 
   private showControls() {
     const o = h('div', 'overlay');
-    o.append(h('h2', '', 'УПРАВЛЕНИЕ'), h('div', 'controls', controlsHtml()), h('div', 'hint', 'Нажми <kbd>Esc</kbd> или кликни, чтобы вернуться'));
+    o.append(h('h2', '', 'УПРАВЛЕНИЕ'), h('div', 'controls', controlsHtml()), h('div', 'hint', isTouch ? 'Коснись, чтобы вернуться' : 'Нажми <kbd>Esc</kbd> или кликни, чтобы вернуться'));
     o.onclick = () => this.closeOverlay();
     this.root.append(o);
     this.overlay = o;

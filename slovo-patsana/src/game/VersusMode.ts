@@ -11,6 +11,7 @@ import { readIntent, type Scheme } from '../core/input';
 import { clamp, damp } from '../core/math';
 import { sfx } from '../audio/sfx';
 import { h, uiRoot } from '../ui/dom';
+import { showTouch } from '../ui/TouchControls';
 import { blockCenter } from '../world/City';
 
 const ROUND_TIME = 60;
@@ -76,6 +77,7 @@ export class VersusMode implements Mode, Arena, AIWorld {
     this.buildHud();
     this.startRound();
     addEventListener('keydown', this.keyHandler);
+    showTouch(true);
     sfx.stopMusic();
     sfx.unlock();
     sfx.startMusic(128);
@@ -191,6 +193,7 @@ export class VersusMode implements Mode, Arena, AIWorld {
 
   private togglePause() {
     this.paused = !this.paused;
+    showTouch(!this.paused);
     this.pauseEl?.remove();
     this.pauseEl = null;
     if (!this.paused) return;
@@ -349,6 +352,7 @@ export class VersusMode implements Mode, Arena, AIWorld {
 
   dispose() {
     removeEventListener('keydown', this.keyHandler);
+    showTouch(false);
     this.app.timeScale = 1;
     this.scene.remove(this.layer);
     this.ui.remove();

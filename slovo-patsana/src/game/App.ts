@@ -9,6 +9,7 @@ import { GradeEffect } from '../render/GradeEffect';
 import { City } from '../world/City';
 import { Environment } from '../world/Environment';
 import { ROSTER, loadBonus, setRoster } from '../actors/characters';
+import { isTouch } from '../core/device';
 import { makeBody } from '../actors/SkinnedBody';
 import { setCarModels } from '../vehicles/CarModel';
 import type { Assets } from '../core/assets';
@@ -48,7 +49,8 @@ export class App {
 
   constructor(public canvas: HTMLCanvasElement, public assets: Assets) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance', stencil: false });
-    this.quality = (localStorage.getItem('sp-quality') as Quality) || 'high';
+    // Phones start on the light preset; the pause menu can raise it.
+    this.quality = (localStorage.getItem('sp-quality') as Quality) || (isTouch ? 'low' : 'high');
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, this.quality === 'low' ? 1 : 1.5));
     this.renderer.setSize(innerWidth, innerHeight);
     this.renderer.shadowMap.enabled = true;

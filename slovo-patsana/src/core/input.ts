@@ -7,6 +7,8 @@ export class Input {
   mouseDX = 0;
   mouseDY = 0;
   locked = false;
+  /** Touch stick, -1..1 (right / forward positive). */
+  stick = { x: 0, y: 0 };
   private prevPad = new Map<number, boolean[]>();
   private padPressed = new Map<number, Set<number>>();
 
@@ -32,6 +34,12 @@ export class Input {
     document.addEventListener('pointerlockchange', () => {
       this.locked = document.pointerLockElement === canvas;
     });
+  }
+
+  /** Camera drag from the touch screen, in mouse-pixel units. */
+  addLook(dx: number, dy: number) {
+    this.mouseDX += dx;
+    this.mouseDY += dy;
   }
 
   requestLock() {
@@ -116,6 +124,13 @@ export function readIntent(inp: Input, scheme: Scheme, dt: number): Intent {
     it.moveX = (inp.key('KeyD') ? 1 : 0) - (inp.key('KeyA') ? 1 : 0);
     it.moveY = (inp.key('KeyW') ? 1 : 0) - (inp.key('KeyS') ? 1 : 0);
     it.run = inp.key('ShiftLeft');
+    const st = inp.stick;
+    if (st.x || st.y) {
+      it.moveX = st.x;
+      it.moveY = st.y;
+      // Stick pushed to the rim = sprint.
+      if (Math.hypot(st.x, st.y) > 0.92) it.run = true;
+    }
     it.punch = inp.keyPressed('KeyJ') || inp.mousePressedBtn(0);
     it.kick = inp.keyPressed('KeyK') || inp.mousePressedBtn(2);
     it.block = inp.key('KeyQ') || inp.key('KeyL');

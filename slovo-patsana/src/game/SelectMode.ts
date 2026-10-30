@@ -7,6 +7,7 @@ import { makeBody, type Body } from '../actors/SkinnedBody';
 import { Environment } from '../world/Environment';
 import { pbrMaterial } from '../core/assets';
 import { damp } from '../core/math';
+import { isTouch } from '../core/device';
 
 interface Cursor {
   idx: number;
@@ -75,8 +76,10 @@ export class SelectMode implements Mode {
       const c = h('div', 'card' + (ch.custom ? ' bonus' : ''));
       c.style.backgroundImage = `url(${this.app.portraits[ch.id]})`;
       c.append(h('div', 'lbl', fullTitle(ch)));
-      c.onmouseenter = () => !this.cursors[0].locked && this.move(0, i - this.cursors[0].idx);
+      c.onmouseenter = () => !isTouch && !this.cursors[0].locked && this.move(0, i - this.cursors[0].idx);
       c.onclick = () => {
+        // On a phone the first tap shows the fighter, a second tap picks him.
+        if (isTouch && this.cursors[0].idx !== i) return this.move(0, i - this.cursors[0].idx);
         this.move(0, i - this.cursors[0].idx);
         this.confirm(0);
       };
@@ -84,7 +87,15 @@ export class SelectMode implements Mode {
       this.cards.push(c);
     });
     bottom.append(roster);
-    bottom.append(h('div', 'hint', players === 2
+    if (isTouch) {
+      const bar = h('div', 'touch-select');
+      const back = h('button', 'tsel', '◀ НАЗАД');
+      back.onclick = () => !this.done && (sfx.ui(), this.onBack());
+      const go = h('button', 'tsel go', 'ВЫБРАТЬ ▶');
+      go.onclick = () => this.confirm(0);
+      bar.append(back, go);
+      bottom.append(bar);
+    } else bottom.append(h('div', 'hint', players === 2
       ? 'Игрок 1: <kbd>A</kbd>/<kbd>D</kbd> + <kbd>J</kbd> &nbsp;·&nbsp; Игрок 2: <kbd>←</kbd>/<kbd>→</kbd> + <kbd>Enter</kbd> &nbsp;·&nbsp; бонус: <kbd>W</kbd>/<kbd>S</kbd> <kbd>Q</kbd>/<kbd>E</kbd> или мышь &nbsp;·&nbsp; <kbd>Esc</kbd> назад'
       : '<kbd>A</kbd>/<kbd>D</kbd> — выбор &nbsp;·&nbsp; <kbd>Enter</kbd>/<kbd>J</kbd> — подтвердить &nbsp;·&nbsp; бонус: <kbd>W</kbd>/<kbd>S</kbd> строка, <kbd>Q</kbd>/<kbd>E</kbd> −/+ или мышь &nbsp;·&nbsp; <kbd>Esc</kbd> назад'));
     this.root.append(bottom);

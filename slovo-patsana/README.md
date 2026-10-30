@@ -33,6 +33,20 @@ You need Node 18 or newer and a browser with WebGL (Chrome, Edge or Firefox).
 - **HUD**: health, stamina (yellow means the special is ready), a minimap with territories, name tags,
   speech bubbles and damage numbers.
 
+## On a phone (Handy)
+
+Start the game on your computer with `npm run handy` (instead of `npm run dev`). Vite prints a
+**Network** address such as `http://192.168.1.23:5173`. Open that address on your phone; it has to be on
+the same Wi-Fi. Turn the phone sideways.
+
+- Left thumb: a joystick appears wherever you touch; push it all the way to sprint.
+- Right thumb: drag to turn the camera.
+- Buttons: РУКА (punch), НОГА (kick), БЛОК (hold), ПРИЁМ (special), УКЛОН (dodge, and the handbrake in a
+  car), МАШИНА (get in or out), II (pause).
+- On the select screen, the first tap shows a fighter and «ВЫБРАТЬ» (or a second tap) picks him.
+- Phones start on the low graphics setting; you can change it in the pause menu.
+- On Android, «Add to home screen» runs it full screen. On a desktop, `?touch=1` shows the touch UI.
+
 ## Story missions and new characters (step 4)
 
 - **Сюжет** in the main menu starts the district with three story missions. A yellow marker (also on

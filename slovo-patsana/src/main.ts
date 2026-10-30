@@ -6,6 +6,8 @@ import { VersusMode } from './game/VersusMode';
 import { ROSTER } from './actors/characters';
 import { h, uiRoot } from './ui/dom';
 import { loadAssets } from './core/assets';
+import { initTouch } from './ui/TouchControls';
+import { isTouch } from './core/device';
 
 const loading = h('div', 'loading', 'ЗАГРУЗКА РАЙОНА…');
 uiRoot().append(loading);
@@ -14,6 +16,7 @@ loadAssets((p, label) => (loading.textContent = `ЗАГРУЗКА: ${label}… $
   setTimeout(() => {
     loading.textContent = 'СТРОИМ РАЙОН…';
     const app = new App(document.getElementById('game') as HTMLCanvasElement, assets);
+    if (isTouch) initTouch(app.input);
     app.getWorld();
     app.makePortraits();
     loading.remove();

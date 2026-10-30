@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { h, uiRoot } from './dom';
+import { isTouch } from '../core/device';
 import type { Fighter } from '../actors/Fighter';
 import { HALF, ZONE_COLORS, ZONE_NAMES, zoneOfBlock, N, PITCH, ROAD, type City, type Zone } from '../world/City';
 
@@ -137,6 +138,7 @@ export class Hud {
   }
 
   prompt(text: string | null) {
+    if (text && isTouch) text = text.replace('<b>F</b>', '<b>МАШИНА</b>');
     this.promptEl.classList.toggle('hidden', !text);
     if (text && this.promptEl.innerHTML !== text) this.promptEl.innerHTML = text;
   }

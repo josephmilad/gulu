@@ -1,0 +1,9 @@
+{
+  "name": "Слово пацана: Улицы Казани",
+  "short_name": "Слово пацана",
+  "start_url": "/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#05060a",
+  "theme_color": "#05060a"
+}

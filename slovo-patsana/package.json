@@ -6,6 +6,7 @@
   "description": "Слово пацана: Улицы Казани — браузерная 3D-игра в духе GTA",
   "scripts": {
     "dev": "vite",
+    "handy": "vite --host",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit"

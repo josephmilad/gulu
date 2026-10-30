@@ -12,6 +12,8 @@ import { pick, wrapAngle } from '../core/math';
 import { sfx } from '../audio/sfx';
 import { Hud } from '../ui/Hud';
 import { h, uiRoot } from '../ui/dom';
+import { showTouch } from '../ui/TouchControls';
+import { isTouch } from '../core/device';
 import { controlsHtml } from '../ui/controls';
 import { ZONE_NAMES, zoneAt, type Hangout, type Zone } from '../world/City';
 import { Streets } from './Streets';
@@ -97,11 +99,14 @@ export class FreeRoamMode implements Mode, Arena, AIWorld {
     );
     this.noteMesh = note;
 
-    this.tipEl = h('div', 'crosshair-tip', 'Кликни мышью, чтобы управлять камерой · <b>H</b> — управление');
+    this.tipEl = h('div', 'crosshair-tip', isTouch
+      ? 'Левый палец — ходить (до упора — бег) · правый — камера · кнопки справа — драка'
+      : 'Кликни мышью, чтобы управлять камерой · <b>H</b> — управление');
     uiRoot().append(this.tipEl);
     setTimeout(() => this.tipEl.classList.add('hidden'), 9000);
     addEventListener('keydown', this.keyHandler);
     document.addEventListener('pointerlockchange', this.onLockChange);
+    showTouch(true);
     this.hud.notice(fullTitle(ch).toUpperCase(), 'Район Универсама. Держи слово.', 3.5);
     sfx.stopMusic();
     sfx.unlock();
@@ -334,6 +339,7 @@ export class FreeRoamMode implements Mode, Arena, AIWorld {
   private pause(on: boolean, controls = false) {
     if (on === this.paused && !controls) return;
     this.paused = on;
+    showTouch(!on);
     this.pauseEl?.remove();
     this.pauseEl = null;
     if (!on) {
@@ -510,6 +516,7 @@ export class FreeRoamMode implements Mode, Arena, AIWorld {
 
   dispose() {
     removeEventListener('keydown', this.keyHandler);
+    showTouch(false);
     document.removeEventListener('pointerlockchange', this.onLockChange);
     this.app.input.releaseLock();
     this.app.timeScale = 1;
