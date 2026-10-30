@@ -50,7 +50,13 @@ export class App {
   constructor(public canvas: HTMLCanvasElement, public assets: Assets) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance', stencil: false });
     // Phones start on the light preset; the pause menu can raise it.
-    this.quality = (localStorage.getItem('sp-quality') as Quality) || (isTouch ? 'low' : 'high');
+    let saved: Quality | null = null;
+    try {
+      saved = localStorage.getItem('sp-quality') as Quality | null;
+    } catch {
+      /* storage blocked */
+    }
+    this.quality = saved || (isTouch ? 'low' : 'high');
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, this.quality === 'low' ? 1 : 1.5));
     this.renderer.setSize(innerWidth, innerHeight);
     this.renderer.shadowMap.enabled = true;
