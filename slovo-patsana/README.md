@@ -4,6 +4,11 @@ A browser game in the style of GTA, based on the series «Слово пацан�
 set in a winter Kazan district in 1989, with street fights, rival gangs and a Mortal Kombat-style
 character select screen. The interface is in Russian.
 
+## Play online
+
+**https://josephmilad.github.io/gulu/**, served by GitHub Pages from the `gh-pages` branch. To update it,
+run `npx vite build --base ./`, then push the contents of `dist/` (plus an empty `.nojekyll`) to `gh-pages`.
+
 ## Run it
 
 ```bash
