@@ -3,6 +3,7 @@ import type { App, Mode } from './App';
 import { h, uiRoot } from '../ui/dom';
 import { sfx } from '../audio/sfx';
 import { controlsHtml } from '../ui/controls';
+import { MODEL_CREDITS } from '../ui/credits';
 import { goFullscreen, isTouch } from '../core/device';
 
 function storyNote() {
@@ -46,6 +47,7 @@ export class MenuMode implements Mode {
       ...(isTouch ? [] : [{ label: 'Стенка на стенку: два игрока', note: 'одна клавиатура или геймпады', action: () => this.onPlay(2, 'versus') }]),
       { label: 'Сюжет', note: storyNote(), action: () => this.onPlay(1, 'story') },
       { label: 'Управление', action: () => this.showControls() },
+      { label: 'Авторы', note: 'модели, лицензии', action: () => this.showCredits() },
     ];
     this.root.append(h('h1', 'title', 'СЛОВО<br>ПАЦАНА'), h('div', 'subtitle', 'УЛИЦЫ КАЗАНИ · 1989'));
     const list = h('div', 'menu-list');
@@ -100,6 +102,24 @@ export class MenuMode implements Mode {
     const o = h('div', 'overlay');
     o.append(h('h2', '', 'УПРАВЛЕНИЕ'), h('div', 'controls', controlsHtml()), h('div', 'hint', isTouch ? 'Коснись, чтобы вернуться' : 'Нажми <kbd>Esc</kbd> или кликни, чтобы вернуться'));
     o.onclick = () => this.closeOverlay();
+    this.root.append(o);
+    this.overlay = o;
+  }
+
+  private showCredits() {
+    const o = h('div', 'overlay credits');
+    const rows = MODEL_CREDITS.map((c) => `<li><a href="${c.url}" target="_blank" rel="noopener">${c.what}</a> — ${c.who} · ${c.lic}</li>`).join('');
+    o.append(h('h2', '', 'АВТОРЫ'), h('div', 'credits-body', `
+      <p>Фанатская некоммерческая игра по мотивам сериала «Слово пацана». Все персонажи — стилизация.</p>
+      <h3>3D-модели (Sketchfab, CC BY 4.0)</h3><ul>${rows}</ul>
+      <h3>Свободные ресурсы</h3><ul>
+      <li><a href="https://polyhaven.com" target="_blank" rel="noopener">Poly Haven</a> — небо, текстуры и предметы · CC0</li>
+      <li><a href="https://quaternius.com" target="_blank" rel="noopener">Quaternius Universal Animation Library</a> — анимации · CC0</li>
+      <li><a href="https://github.com/depixeled-chris/gta7" target="_blank" rel="noopener">gta7</a> by depixeled-chris — коллизии и машины · MIT</li>
+      <li><a href="https://threejs.org" target="_blank" rel="noopener">three.js</a>, <a href="https://github.com/pmndrs/postprocessing" target="_blank" rel="noopener">postprocessing</a>, <a href="https://github.com/N8python/n8ao" target="_blank" rel="noopener">N8AO</a> · MIT</li>
+      </ul>`), h('div', 'hint', isTouch ? 'Коснись заголовка, чтобы вернуться' : 'Нажми <kbd>Esc</kbd> или кликни по заголовку, чтобы вернуться'));
+    o.querySelector('h2')!.addEventListener('click', () => this.closeOverlay());
+    o.querySelector('.hint')!.addEventListener('click', () => this.closeOverlay());
     this.root.append(o);
     this.overlay = o;
   }

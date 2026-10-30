@@ -267,3 +267,11 @@ html.touch .speedo { right: auto; left: 50%; transform: translateX(-50%); bottom
 }
 @keyframes turn { 0%, 30% { transform: rotate(0); } 60%, 100% { transform: rotate(90deg); } }
 html.touch .info.editable { touch-action: pan-y; }
+
+/* ---- credits ---- */
+.overlay.credits { justify-content: flex-start; padding: 28px max(16px, env(safe-area-inset-right)) 20px max(16px, env(safe-area-inset-left)); overflow-y: auto; touch-action: pan-y; }
+.overlay.credits h2, .overlay.credits .hint { cursor: pointer; }
+.credits-body { width: min(760px, 100%); font-size: 15px; line-height: 1.4; }
+.credits-body h3 { font-family: var(--display); font-weight: 400; color: var(--gold); font-size: 17px; margin: 14px 0 4px; }
+.credits-body ul { margin: 0; padding-left: 18px; }
+.credits-body a { color: var(--paper); }
