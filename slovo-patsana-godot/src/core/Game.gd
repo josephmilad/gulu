@@ -28,6 +28,7 @@ func _ready() -> void:
 	ui_layer.layer = 10
 	add_child(ui_layer)
 	Characters.load_bonus()
+	Sfx.init(self)
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
 const STORY_SAVE := "user://story.cfg"

@@ -10,17 +10,22 @@ static var _engine: AudioStreamPlayer
 static var _siren: AudioStreamPlayer
 static var _root: Node
 
-static func _ensure() -> void:
+## Called once by Game at startup, so the players sit in the tree before anything plays.
+static func init(parent: Node) -> void:
 	if _root:
 		return
 	_root = Node.new()
 	_root.name = "Sfx"
-	Engine.get_main_loop().root.add_child.call_deferred(_root)
+	parent.add_child(_root)
 	for i in range(12):
 		var p := AudioStreamPlayer.new()
 		p.bus = "Master"
 		_root.add_child(p)
 		_players.append(p)
+
+static func _ensure() -> void:
+	if _root == null:
+		init(Engine.get_main_loop().root)
 
 static func _stream(name: String) -> AudioStream:
 	if not _streams.has(name):
