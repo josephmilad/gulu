@@ -67,6 +67,45 @@ function measureImpacts(g: GLTF) {
   return res;
 }
 
+const liftCache = new Map<GLTF, number>();
+
+/**
+ * How far to raise a model so its feet rest on the ground: retargeted clips put the
+ * hips at the animation's height, which leaves some rigs standing in the snow and
+ * others floating. Compare the lowest foot joint over the idle loop with the same
+ * joint in the bind pose, where every model was built standing on y = 0.
+ */
+function footLift(g: GLTF) {
+  let v = liftCache.get(g);
+  if (v !== undefined) return v;
+  const isFoot = (n: THREE.Object3D) => (n as THREE.Bone).isBone && /foot|toe|ball/i.test(n.name);
+  const o = SkeletonUtils.clone(g.scene);
+  const p = new THREE.Vector3();
+  const lowest = () => {
+    let m = Infinity;
+    o.updateMatrixWorld(true);
+    o.traverse((n) => {
+      if (isFoot(n)) m = Math.min(m, n.getWorldPosition(p).y);
+    });
+    return m;
+  };
+  const bind = lowest();
+  const clip = g.animations.find((c) => c.name === 'idle');
+  v = 0;
+  if (clip && isFinite(bind)) {
+    const mixer = new THREE.AnimationMixer(o);
+    mixer.clipAction(clip).play();
+    let posed = Infinity;
+    for (let i = 0; i < 12; i++) {
+      mixer.setTime((i / 12) * clip.duration);
+      posed = Math.min(posed, lowest());
+    }
+    if (isFinite(posed)) v = bind - posed;
+  }
+  liftCache.set(g, v);
+  return v;
+}
+
 const LOOPS = new Set(['idle', 'walk', 'jog', 'sprint', 'folded', 'talk', 'crouch', 'sit', 'dance', 'yes']);
 
 /** Logical animation names used by the combat code → clip names in the GLB. */
@@ -271,6 +310,7 @@ export function makeBody(g: GLTF, opts: { tint?: number; tintAmt?: number; scale
     mat.envMapIntensity = 0.8;
     if (mat.map) mat.map.anisotropy = 8;
   });
+  model.position.y = footLift(g) * (opts.scale ?? 1);
   root.add(model);
   const marker = new THREE.Mesh(
     new THREE.RingGeometry(0.42, 0.5, 24),
