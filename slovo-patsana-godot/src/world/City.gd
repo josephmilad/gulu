@@ -24,6 +24,7 @@ var walk_nodes: Array = []  # {x, z, next: []}
 var spawn := {"x": 0.0, "z": 0.0, "heading": 0.0}
 var lamp_spots: Array = []
 var facade_kit := Facades.new()
+var building_kit := BuildingKit.new()
 var trees := Trees.new()
 var inst := MeshLib.Batcher.new()
 var props := MeshLib.PropBatcher.new()
@@ -63,10 +64,12 @@ func _ready() -> void:
 			_block(i, j)
 	_lights()
 	_bus_stops()
+	_signs()
 	_walk_graph()
 	inst.build(self)
 	props.build(self)
 	facade_kit.build(self)
+	building_kit.build(self)
 	trees.build(self)
 	print("city built in %d ms: %d colliders, %d children" % [Time.get_ticks_msec() - t0, boxes.size(), get_child_count()])
 
@@ -232,7 +235,21 @@ func _ground() -> void:
 
 func _roads() -> void:
 	var len := N * PITCH + ROAD
-	var asphalt := _pbr("asphalt_snow", Vector2((ROAD - SIDEWALK * 2) / 4, len / 4), {"roughness": 0.72})
+	var road_mat := func(offset: float) -> ShaderMaterial:
+		var m := ShaderMaterial.new()
+		m.shader = Shaders.get_shader("road")
+		m.set_shader_parameter("albedo_tex", load(Assets.p("tex/asphalt_snow_diff.jpg")))
+		m.set_shader_parameter("normal_tex", load(Assets.p("tex/asphalt_snow_nor.jpg")))
+		if ResourceLoader.exists(Assets.p("tex/asphalt_snow_rough.jpg")):
+			m.set_shader_parameter("rough_tex", load(Assets.p("tex/asphalt_snow_rough.jpg")))
+		m.set_shader_parameter("width", ROAD - SIDEWALK * 2)
+		m.set_shader_parameter("length", len)
+		m.set_shader_parameter("offset", offset)
+		m.set_shader_parameter("pitch", PITCH)
+		m.set_shader_parameter("crossing", ROAD)
+		return m
+	# Crossings sit at -HALF + k·PITCH; the road plane starts at -len/2.
+	var asphalt: ShaderMaterial = road_mat.call(-len / 2 + HALF)
 	var sw_mat := _pbr("concrete_pavement", Vector2(SIDEWALK / 2, len / 2))
 	for k in range(N + 1):
 		var c := -HALF + k * PITCH
@@ -284,10 +301,21 @@ func _bus_stops() -> void:
 			var z := along if vertical else off
 			var ry: float = (-PI / 2 if side > 0 else PI / 2) if vertical else (PI if side > 0 else 0.0)
 			props.add("bus_stop", Vector3(x, 0.14, z), ry, 1)
+			var sa := along + 2.6
+			var sx := off + side * 1.0 if vertical else sa
+			var sz := sa if vertical else off + side * 1.0
+			building_kit.add_prop("sign_busstop", sx, sz, ry)
 			var lx := 0.9 if vertical else 1.9
 			var lz := 1.9 if vertical else 0.9
 			_add_box(x - lx, x + lx, z - lz, z + lz, 2.6)
-			if rnd.call() < 0.5:
+			var roll: float = rnd.call()
+			if roll < 0.25:
+				var pa := along - 4.2
+				var px := off + side * 0.4 if vertical else pa
+				var pz := pa if vertical else off + side * 0.4
+				building_kit.add_prop("payphone", px, pz, ry)
+				_add_box(px - 0.8, px + 0.8, pz - 0.8, pz + 0.8, 2.4)
+			if roll > 0.5:
 				var ka := along + 4.6
 				var kx := off + side * 0.2 if vertical else ka
 				var kz := ka if vertical else off + side * 0.2
@@ -314,6 +342,27 @@ func _lights() -> void:
 				_pool(hx, hz, 7, Color(1, 0.6, 0.25))
 				_add_box(x - 0.15, x + 0.15, z - 0.15, z + 0.15, 7.5)
 			s += 26
+
+## Road signs on the kerb beside the zebras, facing the oncoming traffic.
+func _signs() -> void:
+	for k in range(N + 1):
+		var c := -HALF + k * PITCH
+		for seg in range(N):
+			var a0 := -HALF + seg * PITCH
+			for vertical in [true, false]:
+				if rnd.call() < 0.45:
+					continue
+				# Just before the junction at a0 + PITCH, on the right-hand kerb.
+				var along := a0 + PITCH - ROAD / 2 - 3.0
+				# Traffic heading +Z keeps to x < c; traffic heading +X keeps to z > c.
+				var off: float = c - (ROAD / 2 - 0.5) if vertical else c + (ROAD / 2 - 0.5)
+				var x: float = off if vertical else along
+				var z: float = along if vertical else off
+				# Sign faces (+Z in the model) turned toward the approaching driver.
+				var ry: float = PI if vertical else -PI / 2
+				var name := "sign_crossing" if rnd.call() < 0.7 else "sign_main"
+				building_kit.add_prop(name, x, z, ry)
+				_add_box(x - 0.12, x + 0.12, z - 0.12, z + 0.12, 2.9)
 
 func _tree(x: float, z: float, birch: bool) -> void:
 	var kind := ("birch" if rnd.call() < 0.55 else "poplar") if birch else "spruce"
@@ -416,9 +465,12 @@ func _block(i: int, j: int) -> void:
 		"0,3":
 			_gym(cx, cz)
 			return
-	var layout := floori(rnd.call() * 3)
+	var layout := floori(rnd.call() * 6)
 	var fac := 0
-	if layout == 0:
+	if layout >= 3:
+		_model_block(cx, cz, layout)
+		layout = 0  # yard dressing as for the twin-slab layout
+	elif layout == 0:
 		var floors := 9 if rnd.call() < 0.5 else 5
 		_building(cx, cz - H + 9, 56, 13, floors, fac, 1)
 		_building(cx, cz + H - 9, 56, 13, floors, fac + 1, -1)
@@ -442,6 +494,26 @@ func _block(i: int, j: int) -> void:
 		_tree(x, z, rnd.call() < 0.6)
 	_dress_yard(cx, cz, layout)
 	hangouts.append({"x": cx + 2, "z": cz + (0 if layout == 1 else 8), "zone": zone})
+
+## Rows of photo-textured blocks facing a shared yard.
+func _model_block(cx: float, cz: float, layout: int) -> void:
+	var H := BLOCK / 2
+	var rows := []
+	match layout:
+		3:
+			rows = [[["khrushchevka", -16], ["panel_c01", 16]], [["panel_c01", -16], ["khrushchevka", 16]]]
+		4:
+			rows = [[["panel12", 0]], [["lowpoly_apt", 0]]]
+		_:
+			rows = [[["lowpoly_apt", 0]], [["panel12", 0]]]
+	for r in range(2):
+		for item in rows[r]:
+			var k := building_kit.kit(item[0])
+			var depth: float = k.size.z
+			var z := cz - H + depth / 2 + 3 if r == 0 else cz + H - depth / 2 - 3
+			# Face the yard: the north row is turned round.
+			var b := building_kit.add(item[0], cx + item[1], z, PI if r == 0 else 0.0)
+			_add_box(b.min_x, b.max_x, b.min_z, b.max_z, b.h)
 
 func _universam(cx: float, cz: float) -> void:
 	var w := 46.0
@@ -520,12 +592,12 @@ func _school(cx: float, cz: float) -> void:
 	_building(cx, cz - 6, 54, 14, 3, 4, 1)
 	_building(cx - 20, cz + 12, 14, 22, 3, 4, 0)
 	_sign("ШКОЛА № 42", cx, 9.6, cz + 1.05, 10, 1.3, 0, Color.WHITE, Color("#1d3d7a"))
-	var fence := _std(Color(0.176, 0.208, 0.251), 0.5, 0.5)
-	inst.add("fence", _box_mesh(Vector3(60, 1.4, 0.08)), fence, MeshLib.xform(Vector3(cx, 0.7, cz + 30)), false)
-	_add_box(cx - 30, cx - 3, cz + 29.8, cz + 30.2, 1.4)
-	_add_box(cx + 3, cx + 30, cz + 29.8, cz + 30.2, 1.4)
+	_fence_line("chainlink", cx - 30, cz + 30, cx - 3, cz + 30, 6.0)
+	_fence_line("chainlink", cx + 3, cz + 30, cx + 30, cz + 30, 6.0)
 	for t in range(8):
 		_tree(cx - 2 + (t % 4) * 7, cz + 14 + floori(t / 4) * 8, true)
+	building_kit.add_prop("sign_children", cx - 8, cz + 33.5, 0.0)
+	building_kit.add_prop("sign_children", cx + 8, cz + 33.5, 0.0)
 	landmarks.append({"name": "Школа", "x": cx, "z": cz + 6})
 	hangouts.append({"x": cx + 22, "z": cz + 22, "zone": "universam"})
 
@@ -558,6 +630,10 @@ func _market(cx: float, cz: float) -> void:
 	hangouts.append({"x": cx - 26, "z": cz + 6, "zone": "hadi"})
 
 func _garage_block(cx: float, cz: float, zone: String) -> void:
+	_fence_line("concrete_fence", cx - 31, cz - 31, cx + 31, cz - 31, 2.4)
+	_fence_line("concrete_fence", cx - 31, cz + 31, cx - 4, cz + 31, 2.4)
+	_fence_line("concrete_fence", cx + 4, cz + 31, cx + 31, cz + 31, 2.4)
+	_fence_line("concrete_fence", cx - 31, cz - 31, cx - 31, cz + 31, 2.4)
 	for row in range(3):
 		_garages(cx - 26, cz - 22 + row * 18, 15, true, -1 if row % 2 != 0 else 1)
 	landmarks.append({"name": "Гаражи", "x": cx, "z": cz})
@@ -577,6 +653,17 @@ func _gym(cx: float, cz: float) -> void:
 		_tree(cx - 26 + t * 6, cz + 26, false)
 	landmarks.append({"name": "Качалка", "x": cx + 6, "z": cz + 19})
 	hangouts.append({"x": cx + 6, "z": cz + 21, "zone": "universam"})
+
+## A straight run of fence panels (each `panel` metres long) from (x0, z0) to (x1, z1).
+func _fence_line(name: String, x0: float, z0: float, x1: float, z1: float, panel: float) -> void:
+	var d := Vector2(x1 - x0, z1 - z0)
+	var n := maxi(1, roundi(d.length() / panel))
+	var ry := atan2(d.x, d.y) - PI / 2
+	for i in range(n):
+		var t := (i + 0.5) / n
+		building_kit.add_prop(name, x0 + d.x * t, z0 + d.y * t, ry)
+	var hw := 0.2
+	_add_box(minf(x0, x1) - hw, maxf(x0, x1) + hw, minf(z0, z1) - hw, maxf(z0, z1) + hw, 2.2)
 
 func _walk_graph() -> void:
 	var id := func(i: int, j: int, c: int) -> int:

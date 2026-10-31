@@ -180,6 +180,54 @@ void fragment() {
 	METALLIC = 0.1;
 }
 """,
+"road": """
+shader_type spatial;
+uniform sampler2D albedo_tex : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D normal_tex : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D rough_tex : hint_default_white, filter_linear_mipmap, repeat_enable;
+uniform float width = 8.8;
+uniform float length = 482.0;
+uniform float offset = 0.0;   // world coordinate of the road's start along its length
+uniform float pitch = 78.0;
+uniform float crossing = 14.0;
+float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float vnoise(vec2 p) {
+	vec2 i = floor(p), f = fract(p);
+	f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
+}
+void fragment() {
+	// Metres: u across the road (0 = centre), v along it.
+	float u = (UV.x - 0.5) * width;
+	float v = UV.y * length;
+	vec2 tuv = vec2(u, v) / 4.0;
+	vec3 c = texture(albedo_tex, tuv).rgb;
+	float rgh = texture(rough_tex, tuv).r * 0.72;
+	// Distance along the road to the nearest crossing centre.
+	float g = mod(v + offset + pitch * 0.5, pitch) - pitch * 0.5;
+	float at_crossing = step(abs(g), crossing * 0.5);
+	float paint = 0.0;
+	// Dashed centre line and solid edge lines, not across the junction itself.
+	paint += step(abs(u), 0.07) * step(0.5, fract(v / 6.0)) * (1.0 - at_crossing);
+	paint += step(abs(abs(u) - width * 0.5 + 0.35), 0.06) * (1.0 - at_crossing);
+	// Zebra crossing just before each junction.
+	float zebra_band = step(abs(abs(g) - crossing * 0.5 - 2.0), 1.6);
+	paint += zebra_band * step(0.5, fract(u / 1.0)) * step(abs(u), width * 0.5 - 0.6);
+	// Stop line.
+	paint += step(abs(abs(g) - crossing * 0.5 - 4.2), 0.2) * step(abs(u), width * 0.5 - 0.6);
+	// Worn paint, half under the slush.
+	float wear = smoothstep(0.35, 0.7, vnoise(vec2(u, v) * 1.7) * 0.6 + vnoise(vec2(u, v) * 7.0) * 0.4);
+	paint = clamp(paint, 0.0, 1.0) * wear;
+	c = mix(c, vec3(0.86, 0.86, 0.82), paint * 0.85);
+	// Ploughed snow builds up at the kerbs and in the wheel ruts' gaps.
+	float kerb = smoothstep(width * 0.5 - 1.4, width * 0.5 - 0.2, abs(u));
+	float slush = kerb * (0.6 + 0.4 * vnoise(vec2(u, v) * 0.8));
+	c = mix(c, vec3(0.88, 0.9, 0.94), slush * 0.75);
+	ALBEDO = c;
+	ROUGHNESS = mix(mix(rgh, 0.55, paint), 0.85, slush);
+	NORMAL_MAP = texture(normal_tex, tuv).rgb;
+}
+""",
 "ice": """
 shader_type spatial;
 void fragment() {

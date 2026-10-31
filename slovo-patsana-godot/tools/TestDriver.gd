@@ -19,6 +19,9 @@ func run(name: String) -> void:
 			Game.set_mode(FreeRoam.new().init("bonus1", func(): get_tree().quit()))
 		"drive":
 			Game.set_mode(FreeRoam.new().init("adidas", func(): get_tree().quit()))
+		"perf":
+			get_viewport().disable_3d = false
+			Game.set_mode(FreeRoam.new().init("adidas", func(): get_tree().quit()))
 		"menu":
 			get_parent().menu(false)
 		"menu_en":
@@ -66,6 +69,10 @@ func _process(raw_dt: float) -> void:
 	if test in ["roam", "roam_bonus", "drive"] and not (m is FreeRoam):
 		return
 	match test:
+		"perf":
+			if m is FreeRoam:
+				_perf(m)
+			return
 		"menu", "menu_en":
 			_menu()
 			return
@@ -304,4 +311,22 @@ func _story(m: FreeRoam) -> void:
 		step = 5
 		print("step=", s.cur.i if s.cur else -1, " obj=", s.obj_l.text, " actors=", s.actors.map(func(f): return "%s:%d" % [f.fname, f.hp]))
 		await shot("story2")
+		get_tree().quit()
+
+var _frames := 0
+var _acc := 0.0
+func _perf(m: FreeRoam) -> void:
+	get_viewport().disable_3d = false
+	if t < 3:
+		return
+	_frames += 1
+	_acc += get_process_delta_time()
+	PlayerInput.stick = Vector2(0.2, 1)
+	if t > 13:
+		var info := "draw_calls=%d objects=%d prims=%d vram=%.0fMB" % [
+			RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME),
+			RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_OBJECTS_IN_FRAME),
+			RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_PRIMITIVES_IN_FRAME),
+			RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_VIDEO_MEM_USED) / 1048576.0]
+		print("PERF frames=%d avg_ms=%.1f %s" % [_frames, _acc / _frames * 1000, info])
 		get_tree().quit()

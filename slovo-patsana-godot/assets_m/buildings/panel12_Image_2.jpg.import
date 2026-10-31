@@ -1,0 +1,37 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://cusvdr08do8sb"
+path="res://.godot/imported/panel12_Image_2.jpg-0bed343cdba39815ed3ab092587705c9.ctex"
+metadata={
+"vram_texture": false
+}
+generator_parameters={
+"md5": "a47df909857477a9a234493df4e21111"
+}
+
+[deps]
+
+source_file="res://assets_m/buildings/panel12_Image_2.jpg"
+dest_files=["res://.godot/imported/panel12_Image_2.jpg-0bed343cdba39815ed3ab092587705c9.ctex"]
+
+[params]
+
+compress/mode=0
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=0
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=0
+roughness/src_normal=""
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=1

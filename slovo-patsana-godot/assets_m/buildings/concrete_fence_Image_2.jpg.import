@@ -1,0 +1,37 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://c10x6yn0ktm88"
+path="res://.godot/imported/concrete_fence_Image_2.jpg-616b608105196dfb814bea2509871a2d.ctex"
+metadata={
+"vram_texture": false
+}
+generator_parameters={
+"md5": "9bcabc6939ac1f920e7c93ecaee88f0b"
+}
+
+[deps]
+
+source_file="res://assets_m/buildings/concrete_fence_Image_2.jpg"
+dest_files=["res://.godot/imported/concrete_fence_Image_2.jpg-616b608105196dfb814bea2509871a2d.ctex"]
+
+[params]
+
+compress/mode=0
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=0
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=0
+roughness/src_normal=""
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=1

@@ -1,0 +1,37 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://c43f5gg5oqqkx"
+path="res://.godot/imported/sign_busstop_Image_3.jpg-13cb49e14a0f30f7189b9e0a63e0c6e1.ctex"
+metadata={
+"vram_texture": false
+}
+generator_parameters={
+"md5": "5c578f2988ed8797e1d3d1bb4d7ef532"
+}
+
+[deps]
+
+source_file="res://assets/buildings/sign_busstop_Image_3.jpg"
+dest_files=["res://.godot/imported/sign_busstop_Image_3.jpg-13cb49e14a0f30f7189b9e0a63e0c6e1.ctex"]
+
+[params]
+
+compress/mode=0
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=0
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=0
+roughness/src_normal=""
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=1

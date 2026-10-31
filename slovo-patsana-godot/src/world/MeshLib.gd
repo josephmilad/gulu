@@ -94,6 +94,30 @@ static func xform(pos: Vector3, ry := 0.0, s := Vector3.ONE, rx := 0.0, rz := 0.
 	var b := Basis.from_euler(Vector3(rx, ry, rz)).scaled(s)
 	return Transform3D(b, pos)
 
+## Instances are grouped into map tiles so whole batches can be culled by the camera
+## frustum and by distance; small details also get a shorter draw distance.
+const TILE := 156.0
+
+static func tile_of(t: Transform3D) -> Vector2i:
+	return Vector2i(floori(t.origin.x / TILE), floori(t.origin.z / TILE))
+
+## Draw distance (m) for a batch key; 0 = always.
+static func range_for(key: String) -> float:
+	for k in ["pane", "surround", "sash", "sill", "bal", "glaze", "junk", "antenna", "vent", "pipe", "plinth", "door", "canopy", "doorLamp", "snowman", "carrot"]:
+		if key.begins_with(k):
+			return 150.0
+	for k in ["birch", "poplar", "spruce", "bank", "glow", "pool", "stall", "sign", "payphone", "fence", "chainlink", "concrete_fence", "trashbag", "old_tyre", "wooden_crate", "utility_box", "dead_tree", "metal_trash", "sov_bench", "sov_bin", "kvass", "seesaw", "rocket", "water_manhole", "exterior_aircon", "covered_car"]:
+		if key.begins_with(k):
+			return 210.0
+	return 0.0
+
+static func apply_range(mi: GeometryInstance3D, key: String) -> void:
+	var r := range_for(key)
+	if r > 0:
+		mi.visibility_range_end = r
+		mi.visibility_range_end_margin = 12.0
+		mi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
+
 ## Collects instance transforms per key and builds MultiMeshInstance3D nodes.
 class Batcher:
 	var sets := {}
@@ -107,22 +131,32 @@ class Batcher:
 	func build(parent: Node3D) -> void:
 		for key in sets:
 			var s: Dictionary = sets[key]
-			var mm := MultiMesh.new()
-			mm.transform_format = MultiMesh.TRANSFORM_3D
-			mm.use_custom_data = s.custom.size() > 0
-			mm.mesh = s.mesh
-			mm.instance_count = s.t.size()
+			# Split by map tile.
+			var tiles := {}
 			for i in range(s.t.size()):
-				mm.set_instance_transform(i, s.t[i])
-				if mm.use_custom_data:
-					mm.set_instance_custom_data(i, Color(s.custom[i], 0, 0, 0))
-			var mi := MultiMeshInstance3D.new()
-			mi.name = key
-			mi.multimesh = mm
-			if s.mat:
-				mi.material_override = s.mat
-			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if s.shadow else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-			parent.add_child(mi)
+				var tk := MeshLib.tile_of(s.t[i])
+				if not tiles.has(tk):
+					tiles[tk] = []
+				tiles[tk].append(i)
+			for tk in tiles:
+				var idx: Array = tiles[tk]
+				var mm := MultiMesh.new()
+				mm.transform_format = MultiMesh.TRANSFORM_3D
+				mm.use_custom_data = s.custom.size() > 0
+				mm.mesh = s.mesh
+				mm.instance_count = idx.size()
+				for j in range(idx.size()):
+					mm.set_instance_transform(j, s.t[idx[j]])
+					if mm.use_custom_data:
+						mm.set_instance_custom_data(j, Color(s.custom[idx[j]], 0, 0, 0))
+				var mi := MultiMeshInstance3D.new()
+				mi.name = "%s_%d_%d" % [key, tk.x, tk.y]
+				mi.multimesh = mm
+				if s.mat:
+					mi.material_override = s.mat
+				mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if s.shadow else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				MeshLib.apply_range(mi, key)
+				parent.add_child(mi)
 
 ## Places imported GLB props as MultiMeshes: one per sub-mesh of each prop.
 class PropBatcher:
@@ -139,24 +173,34 @@ class PropBatcher:
 				continue
 			var inst: Node3D = (load(path) as PackedScene).instantiate()
 			parent.add_child(inst)
-			var list: Array = placed[name]
+			var all: Array = placed[name]
+			var tiles := {}
+			for t in all:
+				var tk := MeshLib.tile_of(t)
+				if not tiles.has(tk):
+					tiles[tk] = []
+				tiles[tk].append(t)
 			var k := 0
 			for mi in inst.find_children("*", "MeshInstance3D", true, false):
 				var m := mi as MeshInstance3D
 				var local := inst.global_transform.affine_inverse() * m.global_transform
-				var mm := MultiMesh.new()
-				mm.transform_format = MultiMesh.TRANSFORM_3D
-				mm.mesh = m.mesh
-				mm.instance_count = list.size()
-				for i in range(list.size()):
-					mm.set_instance_transform(i, list[i] * local)
-				var out := MultiMeshInstance3D.new()
-				out.name = "%s_%d" % [name, k]
+				for tk in tiles:
+					var list: Array = tiles[tk]
+					var mm := MultiMesh.new()
+					mm.transform_format = MultiMesh.TRANSFORM_3D
+					mm.mesh = m.mesh
+					mm.instance_count = list.size()
+					for i in range(list.size()):
+						mm.set_instance_transform(i, list[i] * local)
+					var out := MultiMeshInstance3D.new()
+					out.name = "%s_%d_%d_%d" % [name, k, tk.x, tk.y]
+					out.multimesh = mm
+					# A material override on the instance applies when the GLB set it per instance.
+					if m.material_override:
+						out.material_override = m.material_override
+					var small: bool = name in ["water_manhole_cover", "trashbag", "old_tyre", "wooden_crate_01", "sov_bin"]
+					out.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if small else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+					MeshLib.apply_range(out, name)
+					parent.add_child(out)
 				k += 1
-				out.multimesh = mm
-				# A material override on the instance applies when the GLB set it per instance.
-				if m.material_override:
-					out.material_override = m.material_override
-				out.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if name == "water_manhole_cover" else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
-				parent.add_child(out)
 			inst.queue_free()

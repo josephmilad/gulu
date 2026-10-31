@@ -104,17 +104,24 @@ func add(kind: String, x: float, z: float, scale: float, rot: float, variant: in
 func build(parent: Node3D) -> void:
 	for kind in ["birch", "poplar", "spruce"]:
 		for v in range(3):
-			var list: Array = placed[kind][v]
-			if list.is_empty():
-				continue
-			var mm := MultiMesh.new()
-			mm.transform_format = MultiMesh.TRANSFORM_3D
-			mm.mesh = variants[kind][v]
-			mm.instance_count = list.size()
-			for i in range(list.size()):
-				mm.set_instance_transform(i, list[i])
-			var mi := MultiMeshInstance3D.new()
-			mi.name = "%s_%d" % [kind, v]
-			mi.multimesh = mm
-			mi.material_override = mats[kind]
-			parent.add_child(mi)
+			var all: Array = placed[kind][v]
+			var tiles := {}
+			for t in all:
+				var tk := MeshLib.tile_of(t)
+				if not tiles.has(tk):
+					tiles[tk] = []
+				tiles[tk].append(t)
+			for tk in tiles:
+				var list: Array = tiles[tk]
+				var mm := MultiMesh.new()
+				mm.transform_format = MultiMesh.TRANSFORM_3D
+				mm.mesh = variants[kind][v]
+				mm.instance_count = list.size()
+				for i in range(list.size()):
+					mm.set_instance_transform(i, list[i])
+				var mi := MultiMeshInstance3D.new()
+				mi.name = "%s_%d_%d_%d" % [kind, v, tk.x, tk.y]
+				mi.multimesh = mm
+				mi.material_override = mats[kind]
+				MeshLib.apply_range(mi, kind)
+				parent.add_child(mi)
