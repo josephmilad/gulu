@@ -91,8 +91,7 @@ export default function PiecePanel() {
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
             className="fixed inset-y-0 right-0 z-50 flex w-full flex-col bg-panel shadow-[0_0_80px_rgba(0,0,0,0.25)] md:w-[min(560px,44vw)]"
           >
-            <div className="flex h-14 shrink-0 items-center justify-between border-b hairline px-5 md:h-16 md:px-8">
-              <span className="font-serif text-lg">niche</span>
+            <div className="flex h-14 shrink-0 items-center justify-end border-b hairline px-5 md:h-16 md:px-8">
               <button
                 type="button"
                 onClick={close}

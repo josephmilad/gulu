@@ -74,7 +74,7 @@ export default function PieceDetail({
             </div>
             <div className="flex flex-col items-center gap-1">
               <NicheScore value={score} size={64} />
-              <span className="eyebrow">Niche</span>
+              <span className="eyebrow whitespace-nowrap">Niche ranking</span>
             </div>
           </div>
 
@@ -91,7 +91,7 @@ export default function PieceDetail({
           </div>
 
           <div className="mt-8 border-t hairline pt-6">
-            <p className="eyebrow">Why it&apos;s niche</p>
+            <p className="eyebrow">Why it&apos;s special</p>
             <p className="mt-3 text-[15px] leading-relaxed text-ink">{piece.why}</p>
           </div>
 
@@ -164,7 +164,7 @@ export default function PieceDetail({
           </div>
 
           <p className="mt-8 text-[11px] leading-relaxed text-muted">
-            niche does not sell this piece. The link opens {piece.retailer.name}. Imagery is
+            We don&apos;t sell this piece. The link opens {piece.retailer.name}. Imagery is
             editorial placeholder photography until product feeds are connected.
           </p>
         </div>

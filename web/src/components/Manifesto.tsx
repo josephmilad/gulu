@@ -18,7 +18,7 @@ export default function Manifesto() {
           <p className="mt-6 max-w-md text-[15px] leading-relaxed text-ink-2">
             Our model reads reviews, forums, resale data and trend indices to find pieces that the
             people who know a category rate highly, but that the algorithm has not flattened yet.
-            Every piece carries a Niche Score and a line on how it relates to what is trending now.
+            Every piece gets a ranking out of 100 and a line on how it relates to what is trending now.
           </p>
           <ul className="mt-8 space-y-3 text-[13px]">
             {[

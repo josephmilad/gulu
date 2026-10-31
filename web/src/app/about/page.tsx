@@ -22,7 +22,7 @@ export default function AboutPage() {
           </p>
         </Reveal>
         <Reveal id="score">
-          <h2 className="font-serif text-2xl text-ink">The Niche Score</h2>
+          <h2 className="font-serif text-2xl text-ink">How pieces are ranked</h2>
           <p className="mt-3">
             Four signals, weighted: recognition (35%), how far under the radar it sits (30%),
             craft (20%) and longevity (15%). A piece needs a score of 60 or more and strong

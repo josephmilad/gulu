@@ -704,7 +704,7 @@ export const PIECES: Piece[] = [
     retailer: { name: "Levi's", url: "https://www.levi.com" },
     images: [{ src: u("1517841905240-472988babdf9"), alt: "Woman in a denim jacket over a grey hoodie against a blue wall", ratio: 2 / 3 }],
     why: "Levi's own archive line, reproducing specific years of jackets and jeans from the company vault.",
-    trendNote: "A niche line hidden inside a mainstream brand.",
+    trendNote: "A specialist line hidden inside a mainstream brand.",
     signals: { recognition: 0.85, popularity: 0.35, longevity: 0.95, craft: 0.85 },
     materials: "Selvedge denim",
   },
