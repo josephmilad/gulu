@@ -20,7 +20,8 @@ export type StyleSlug =
   | "avant-garde"
   | "ivy"
   | "scandi"
-  | "japanese";
+  | "japanese"
+  | "romantic";
 
 export interface Style {
   slug: StyleSlug;

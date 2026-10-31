@@ -111,6 +111,18 @@ export const STYLES: Style[] = [
     },
     cover: u("1591047139829-d91aecb6caea"),
   },
+  {
+    slug: "romantic",
+    name: "Romantic",
+    tagline: "Soft volume, made slowly.",
+    definition:
+      "Smocking, frills, florals and full skirts, cut from natural fabrics. Feminine without being fragile, and made in small runs.",
+    trend: {
+      direction: "rising",
+      note: "Volume and print are returning as the counterweight to years of minimal tailoring.",
+    },
+    cover: u("1581044777550-4cfa60707c03"),
+  },
 ];
 
 export const STYLE_MAP = Object.fromEntries(STYLES.map((s) => [s.slug, s])) as Record<

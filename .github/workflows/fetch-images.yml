@@ -2,6 +2,9 @@ name: Fetch placeholder images
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - web/scripts/images.txt
 
 permissions:
   contents: write
@@ -17,6 +20,7 @@ jobs:
           mkdir -p web/public/img
           cd web/public/img
           while read -r id w; do
+            [ -f "$id.jpg" ] && continue
             curl -sfL -o "$id.jpg" "https://images.unsplash.com/photo-$id?w=$w&q=72&auto=format&fit=crop&fm=jpg" &
           done < "$GITHUB_WORKSPACE/web/scripts/images.txt"
           wait

@@ -10,7 +10,7 @@ export default function StyleStrip() {
       <Reveal className="flex items-end justify-between">
         <div>
           <p className="eyebrow">Browse by style</p>
-          <h2 className="font-serif mt-2 text-3xl tracking-tight md:text-5xl">Nine ways to dress quietly.</h2>
+          <h2 className="font-serif mt-2 text-3xl tracking-tight md:text-5xl">Ten ways to dress quietly.</h2>
         </div>
         <Link href="/styles" className="u-link hidden text-[13px] md:inline">
           All styles
