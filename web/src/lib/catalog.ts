@@ -5,7 +5,7 @@ import { nicheScore, type Piece, type Style } from "@/lib/types";
 export type RankedPiece = Piece & { rank: number };
 
 export const RANKED: RankedPiece[] = PIECES.map((p) => ({ ...p, rank: nicheScore(p.signals) }));
-const RATIOS = ["2/3", "3/4", "4/5", "3/5", "3/4", "5/7", "4/5", "2/3", "3/4", "3/5"];
+const RATIOS = ["3/4", "4/5", "2/3", "1/1", "4/5", "3/4", "5/6", "2/3", "4/5", "3/4"];
 /** A stable photo shape per piece so the masonry grid has varied heights. */
 export function ratioFor(slug: string): string {
   const i = RANKED.findIndex((p) => p.slug === slug);
