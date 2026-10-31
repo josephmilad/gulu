@@ -50,6 +50,9 @@ the same Wi-Fi. Turn the phone sideways.
   car), МАШИНА (get in or out), II (pause).
 - On the select screen, the first tap shows a fighter and «ВЫБРАТЬ» (or a second tap) picks him.
 - Phones start on the low graphics setting; you can change it in the pause menu.
+- Phones load light copies of the models and textures from `public/assets/m/` (about 38 MB instead of
+  133 MB, and about 140 MB of texture memory instead of 1.2 GB, which iPhone Safari would not survive).
+  Rebuild them after changing any model with `tools/mobile_assets.mjs`.
 - On Android, «Add to home screen» runs it full screen. On a desktop, `?touch=1` shows the touch UI.
 
 ## Story missions and new characters (step 4)

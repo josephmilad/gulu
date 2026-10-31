@@ -9,7 +9,11 @@ if (isTouch) document.documentElement.classList.add('touch');
 export function goFullscreen() {
   if (!isTouch || document.fullscreenElement) return;
   const el = document.documentElement;
-  el.requestFullscreen?.({ navigationUI: 'hide' })
-    .then(() => (screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> }).lock?.('landscape'))
-    .catch(() => {});
+  try {
+    el.requestFullscreen?.({ navigationUI: 'hide' })
+      ?.then(() => (screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> }).lock?.('landscape'))
+      .catch(() => {});
+  } catch {
+    /* iPhone Safari has no element fullscreen */
+  }
 }

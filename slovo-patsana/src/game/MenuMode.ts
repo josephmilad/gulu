@@ -74,9 +74,13 @@ export class MenuMode implements Mode {
   private pressStart: HTMLElement;
   private list: HTMLElement;
 
+  /** The tap that opens the menu must not also press the item under the finger. */
+  private openedAt = -1e9;
+
   private begin() {
     if (this.started) return;
     this.started = true;
+    this.openedAt = performance.now();
     sfx.unlock();
     sfx.startWind();
     sfx.startMusic();
@@ -89,6 +93,7 @@ export class MenuMode implements Mode {
   }
 
   private activate(i: number) {
+    if (performance.now() - this.openedAt < 450) return;
     const it = this.items[i];
     if (it.disabled) {
       sfx.ui();

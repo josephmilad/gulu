@@ -1,8 +1,11 @@
 import * as THREE from 'three';
 import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
+import { isTouch } from './device';
 
 const BASE = import.meta.env.BASE_URL + 'assets/';
+/** Phones get the light versions (512 px textures, no detail maps) built by tools/mobile_assets.mjs. */
+const MBASE = isTouch ? BASE + 'm/' : BASE;
 
 export const CHARACTER_FILES = ['vova', 'palto', 'kashchey'] as const;
 /** Newer playable characters: one model each (no crowd LOD); a missing file just leaves them out. */
@@ -44,7 +47,7 @@ export async function loadAssets(onProgress: (p: number, label: string) => void)
   const imgLoader = new THREE.ImageLoader();
   let done = 0;
   const jobs: Promise<unknown>[] = [];
-  const total = CHARACTER_FILES.length * 2 + EXTRA_CHARACTER_FILES.length + NPC_FILES.length + VEHICLE_FILES.length + PROP_FILES.length + TEXTURE_SETS.length * 3 + 1;
+  const total = CHARACTER_FILES.length * (isTouch ? 1 : 2) + EXTRA_CHARACTER_FILES.length + NPC_FILES.length + VEHICLE_FILES.length + PROP_FILES.length + TEXTURE_SETS.length * 3 + 1;
   const tick = (label: string) => onProgress(++done / total, label);
   const track = <T>(p: Promise<T>, label: string) => {
     const q = p.then((v) => {
@@ -56,31 +59,35 @@ export async function loadAssets(onProgress: (p: number, label: string) => void)
   };
 
   const a: Assets = { characters: {}, charactersLod: {}, props: {}, vehicles: {}, npcs: {}, tex: {}, hdr: null as unknown as THREE.DataTexture };
-  for (const n of NPC_FILES) track(gltf.loadAsync(`${BASE}characters/npc/${n}.glb`), 'прохожие').then((g) => (a.npcs[n] = g));
-  for (const v of VEHICLE_FILES) track(gltf.loadAsync(`${BASE}vehicles/${v}.glb`), 'машины').then((g) => (a.vehicles[v] = g));
+  for (const n of NPC_FILES) track(gltf.loadAsync(`${MBASE}characters/npc/${n}.glb`), 'прохожие').then((g) => (a.npcs[n] = g));
+  for (const v of VEHICLE_FILES) track(gltf.loadAsync(`${MBASE}vehicles/${v}.glb`), 'машины').then((g) => (a.vehicles[v] = g));
   for (const c of CHARACTER_FILES) {
-    track(gltf.loadAsync(`${BASE}characters/${c}.glb`), 'персонажи').then((g) => (a.characters[c] = g));
-    track(gltf.loadAsync(`${BASE}characters/${c}_lod.glb`), 'прохожие').then((g) => (a.charactersLod[c] = g));
+    track(gltf.loadAsync(`${MBASE}characters/${c}.glb`), 'персонажи').then((g) => {
+      a.characters[c] = g;
+      // The phone models are already light enough to double as the crowd version.
+      if (isTouch) a.charactersLod[c] = g;
+    });
+    if (!isTouch) track(gltf.loadAsync(`${BASE}characters/${c}_lod.glb`), 'прохожие').then((g) => (a.charactersLod[c] = g));
   }
   for (const c of EXTRA_CHARACTER_FILES) {
-    const q = gltf.loadAsync(`${BASE}characters/${c}.glb`).then((g) => {
+    const q = gltf.loadAsync(`${MBASE}characters/${c}.glb`).then((g) => {
       a.characters[c] = g;
       a.charactersLod[c] = g;
     }).catch((e) => console.warn('character model not loaded:', c, e)).finally(() => tick('персонажи'));
     jobs.push(q);
   }
   for (const p of PROP_FILES) {
-    track(gltf.loadAsync(`${BASE}props/${p}.glb`), 'двор').then((g) => (a.props[p] = g.scene));
+    track(gltf.loadAsync(`${MBASE}props/${p}.glb`), 'двор').then((g) => (a.props[p] = g.scene));
   }
   for (const t of TEXTURE_SETS) {
     const set = {} as PbrSet;
     a.tex[t] = set;
-    track(texLoader.loadAsync(`${BASE}tex/${t}_diff.jpg`), 'текстуры').then((x) => {
+    track(texLoader.loadAsync(`${MBASE}tex/${t}_diff.jpg`), 'текстуры').then((x) => {
       x.colorSpace = THREE.SRGBColorSpace;
       set.map = x;
     });
-    track(texLoader.loadAsync(`${BASE}tex/${t}_nor.jpg`), 'текстуры').then((x) => (set.normal = x));
-    track(imgLoader.loadAsync(`${BASE}tex/${t}_diff.jpg`), 'текстуры').then((x) => (set.image = x));
+    track(texLoader.loadAsync(`${MBASE}tex/${t}_nor.jpg`), 'текстуры').then((x) => (set.normal = x));
+    track(imgLoader.loadAsync(`${MBASE}tex/${t}_diff.jpg`), 'текстуры').then((x) => (set.image = x));
     set.rough = null as unknown as THREE.Texture;
   }
   track(new RGBELoader().loadAsync(`${BASE}hdri/winter_evening_2k.hdr`), 'небо').then((h) => {
@@ -90,7 +97,7 @@ export async function loadAssets(onProgress: (p: number, label: string) => void)
   await Promise.all(jobs);
   for (const t of TEXTURE_SETS) {
     // Roughness maps are optional; fall back to the material's scalar roughness.
-    const r = await texLoader.loadAsync(`${BASE}tex/${t}_rough.jpg`).catch(() => null);
+    const r = await texLoader.loadAsync(`${MBASE}tex/${t}_rough.jpg`).catch(() => null);
     if (r) a.tex[t].rough = r;
   }
   for (const s of Object.values(a.tex))
