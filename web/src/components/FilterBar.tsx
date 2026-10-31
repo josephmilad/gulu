@@ -36,9 +36,9 @@ function Chip({
 
 export default function FilterBar({ style, category, count, onStyle, onCategory }: Props) {
   return (
-    <div className="sticky top-14 z-30 border-b hairline bg-bg/85 backdrop-blur-xl md:top-16">
+    <div className="filter-bar sticky z-30 border-b hairline bg-bg/95 backdrop-blur-xl">
       <div className="mx-auto max-w-[1800px] px-4 md:px-8">
-        <div className="no-scrollbar flex items-center gap-2 overflow-x-auto py-3">
+        <div className="no-scrollbar -mx-4 flex items-center gap-2 overflow-x-auto px-4 py-2.5 md:mx-0 md:px-0 md:py-3">
           <span className="eyebrow mr-1 hidden shrink-0 md:inline">Style</span>
           <Chip active={!style} onClick={() => onStyle(null)}>
             All
@@ -49,7 +49,7 @@ export default function FilterBar({ style, category, count, onStyle, onCategory 
             </Chip>
           ))}
         </div>
-        <div className="no-scrollbar flex items-center gap-2 overflow-x-auto pb-3">
+        <div className="no-scrollbar -mx-4 flex items-center gap-2 overflow-x-auto px-4 pb-2.5 md:mx-0 md:px-0 md:pb-3">
           <span className="eyebrow mr-1 hidden shrink-0 md:inline">Category</span>
           <Chip active={!category} onClick={() => onCategory(null)}>
             All

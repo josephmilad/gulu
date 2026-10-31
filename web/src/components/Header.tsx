@@ -22,7 +22,9 @@ export default function Header() {
 
   useMotionValueEvent(scrollY, "change", (y) => {
     const prev = scrollY.getPrevious() ?? 0;
-    setHidden(y > prev && y > 120);
+    const hide = y > prev && y > 120;
+    setHidden(hide);
+    document.documentElement.toggleAttribute("data-header-hidden", hide);
     setScrolled(y > 24);
   });
 
@@ -32,7 +34,7 @@ export default function Header() {
       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
       className={`fixed inset-x-0 top-0 z-40 transition-[background-color,backdrop-filter,border-color,color] duration-500 ${
         scrolled
-          ? "bg-bg/80 backdrop-blur-xl border-b hairline text-ink"
+          ? "bg-bg/95 backdrop-blur-xl border-b hairline text-ink"
           : `bg-transparent border-b border-transparent ${light ? "text-white" : "text-ink"}`
       }`}
     >

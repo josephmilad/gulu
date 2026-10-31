@@ -136,3 +136,17 @@ body {
     animation: none;
   }
 }
+
+/* filter bar follows the header: sits below it, moves to the top when it hides */
+.filter-bar {
+  top: 3.5rem;
+  transition: top 0.5s var(--ease-out-expo);
+}
+@media (min-width: 768px) {
+  .filter-bar {
+    top: 4rem;
+  }
+}
+html[data-header-hidden] .filter-bar {
+  top: 0;
+}
