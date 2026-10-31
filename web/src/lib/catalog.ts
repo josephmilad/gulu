@@ -5,6 +5,13 @@ import { nicheScore, type Piece, type Style } from "@/lib/types";
 export type RankedPiece = Piece & { rank: number };
 
 export const RANKED: RankedPiece[] = PIECES.map((p) => ({ ...p, rank: nicheScore(p.signals) }));
+const RATIOS = ["2/3", "3/4", "4/5", "3/5", "3/4", "5/7", "4/5", "2/3", "3/4", "3/5"];
+/** A stable photo shape per piece so the masonry grid has varied heights. */
+export function ratioFor(slug: string): string {
+  const i = RANKED.findIndex((p) => p.slug === slug);
+  return RATIOS[(i < 0 ? 0 : i) % RATIOS.length];
+}
+
 export const RANKED_MAP: Record<string, RankedPiece> = Object.fromEntries(RANKED.map((p) => [p.slug, p]));
 
 export const SORTS = {

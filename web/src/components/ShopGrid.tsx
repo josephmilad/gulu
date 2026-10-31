@@ -1,21 +1,41 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { RANKED, SORTS, STYLES, STYLE_MAP, applyFilters, readFilters, type Filters, type RankedPiece, type SortKey } from "@/lib/catalog";
 import { CATEGORIES } from "@/data/styles";
-import { useShop } from "@/lib/useShop";
+import { scrollToGrid, useShop } from "@/lib/useShop";
 import { useScrollLock, useSheetDrag } from "@/lib/useSheetDrag";
-import PieceCard from "./PieceCard";
+import Masonry from "./Masonry";
 import { SlidersIcon, SortIcon, XIcon } from "./Icons";
+
+const Chevron = () => (
+  <svg className="icon chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+);
 
 export default function ShopGrid({ pieces = RANKED, lockedStyle }: { pieces?: RankedPiece[]; lockedStyle?: string }) {
   const { params, update } = useShop();
   const f = readFilters(params, lockedStyle);
   const list = applyFilters(pieces, f);
-  const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState<Filters>(f);
+  const [panelOpen, setPanelOpen] = useState(true);
+  const [sortOpen, setSortOpen] = useState(false);
+  const openedAt = useRef(0);
+  const section = useRef<HTMLElement>(null);
 
-  const apply = (next: Filters) => {
+  // fold the filter rows away once the visitor scrolls down into the grid
+  useEffect(() => {
+    if (!panelOpen) return;
+    openedAt.current = window.scrollY;
+    const onScroll = () => {
+      const el = section.current;
+      if (!el) return;
+      const gridTop = el.getBoundingClientRect().top + window.scrollY;
+      if (window.scrollY > gridTop + 240 && window.scrollY - openedAt.current > 140) setPanelOpen(false);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [panelOpen]);
+
+  const apply = (next: Filters, toGrid = false) =>
     update(
       {
         style: lockedStyle ? null : next.styles.join(",") || null,
@@ -24,132 +44,109 @@ export default function ShopGrid({ pieces = RANKED, lockedStyle }: { pieces?: Ra
         q: next.q || null,
         p: null,
       },
-      { toGrid: true },
+      { toGrid },
     );
+  const toggle = (key: "styles" | "cats", v: string) => {
+    apply({ ...f, [key]: f[key].includes(v) ? f[key].filter((x) => x !== v) : [...f[key], v] });
+    if ((section.current?.getBoundingClientRect().top ?? 0) < 0) setTimeout(scrollToGrid, 60);
   };
-  const remove = (patch: Partial<Filters>) => apply({ ...f, ...patch });
 
   const filterCount = (lockedStyle ? 0 : f.styles.length) + f.cats.length;
   const chips: React.ReactNode[] = [];
-  if (f.q) chips.push(<button key="q" type="button" className="achip" onClick={() => remove({ q: "" })}>&ldquo;{f.q}&rdquo;<XIcon /></button>);
-  if (!lockedStyle)
-    f.styles.forEach((s) =>
-      chips.push(<button key={s} type="button" className="achip" onClick={() => remove({ styles: f.styles.filter((x) => x !== s) })}>{STYLE_MAP[s as keyof typeof STYLE_MAP]?.name ?? s}<XIcon /></button>),
-    );
-  f.cats.forEach((c) =>
-    chips.push(<button key={c} type="button" className="achip" onClick={() => remove({ cats: f.cats.filter((x) => x !== c) })}>{c}<XIcon /></button>),
-  );
-  if (chips.length > 1)
-    chips.push(<button key="all" type="button" className="achip clear" onClick={() => apply({ q: "", styles: lockedStyle ? f.styles : [], cats: [], sort: f.sort })}>Clear all</button>);
-
-  const openSheet = () => {
-    setDraft(f);
-    setOpen(true);
-  };
+  if (f.q) chips.push(<button key="q" type="button" className="achip" onClick={() => apply({ ...f, q: "" })}>&ldquo;{f.q}&rdquo;<XIcon /></button>);
+  if (!panelOpen) {
+    if (!lockedStyle)
+      f.styles.forEach((s) =>
+        chips.push(<button key={s} type="button" className="achip" onClick={() => toggle("styles", s)}>{STYLE_MAP[s as keyof typeof STYLE_MAP]?.name ?? s}<XIcon /></button>),
+      );
+    f.cats.forEach((c) => chips.push(<button key={c} type="button" className="achip" onClick={() => toggle("cats", c)}>{c}<XIcon /></button>));
+    if (chips.length > 1)
+      chips.push(<button key="all" type="button" className="achip clear" onClick={() => apply({ q: "", styles: lockedStyle ? f.styles : [], cats: [], sort: f.sort })}>Clear all</button>);
+  }
 
   return (
-    <section id="all" style={{ marginTop: 20 }}>
+    <section id="all" ref={section} style={{ marginTop: 20 }}>
       <div className="toolbar">
         <div className="wrap">
           <div className="row">
-            <button type="button" className="tbtn" onClick={openSheet}><SortIcon /><span>{SORTS[f.sort]}</span></button>
-            <button type="button" className="tbtn" onClick={openSheet}>
-              <SlidersIcon />Filter{filterCount > 0 && <span className="n">{filterCount}</span>}
+            <button type="button" className="tbtn" onClick={() => setSortOpen(true)}><SortIcon /><span>{SORTS[f.sort]}</span></button>
+            <button
+              type="button"
+              className={`tbtn${panelOpen ? " open" : ""}`}
+              aria-expanded={panelOpen}
+              aria-controls="fpanel"
+              onClick={() => setPanelOpen((o) => !o)}
+            >
+              <SlidersIcon />Filter{filterCount > 0 && <span className="n">{filterCount}</span>}<Chevron />
             </button>
             <span className="total">{list.length} piece{list.length === 1 ? "" : "s"}</span>
+          </div>
+          <div className={`fpanel${panelOpen ? " open" : ""}`} id="fpanel">
+            <div>
+              {!lockedStyle && (
+                <div className="frow">
+                  <span className="lbl">Style</span>
+                  {STYLES.map((s) => (
+                    <button key={s.slug} type="button" className={`chip${f.styles.includes(s.slug) ? " on" : ""}`} onClick={() => toggle("styles", s.slug)}>{s.name}</button>
+                  ))}
+                </div>
+              )}
+              <div className="frow">
+                <span className="lbl">Category</span>
+                {CATEGORIES.map((c) => (
+                  <button key={c} type="button" className={`chip${f.cats.includes(c) ? " on" : ""}`} onClick={() => toggle("cats", c)}>{c}</button>
+                ))}
+                {filterCount > 0 && (
+                  <button type="button" className="fclear" onClick={() => apply({ ...f, styles: lockedStyle ? f.styles : [], cats: [] })}>Clear</button>
+                )}
+              </div>
+            </div>
           </div>
           {chips.length > 0 && <div className="active-row">{chips}</div>}
         </div>
       </div>
-      <div className="wrap">
-        <div className="grid">
-          {list.length ? (
-            list.map((p, i) => <PieceCard key={p.slug} piece={p} index={i} />)
-          ) : (
-            <div className="empty"><b>No pieces match</b>Try removing a filter or searching for something else.</div>
-          )}
-        </div>
+      <div className="tight">
+        <Masonry pieces={list} empty={<div className="empty"><b>No pieces match</b>Try removing a filter or searching for something else.</div>} />
       </div>
-      <FilterSheet
-        open={open}
-        draft={draft}
-        setDraft={setDraft}
-        lockedStyle={lockedStyle}
-        count={applyFilters(pieces, draft).length}
-        onClose={() => setOpen(false)}
-        onApply={() => {
-          setOpen(false);
-          apply(draft);
+      <SortSheet
+        open={sortOpen}
+        value={f.sort}
+        onClose={() => setSortOpen(false)}
+        onPick={(k) => {
+          setSortOpen(false);
+          apply({ ...f, sort: k }, true);
         }}
       />
     </section>
   );
 }
 
-function FilterSheet({
-  open, draft, setDraft, lockedStyle, count, onClose, onApply,
-}: {
-  open: boolean;
-  draft: Filters;
-  setDraft: (f: Filters) => void;
-  lockedStyle?: string;
-  count: number;
-  onClose: () => void;
-  onApply: () => void;
-}) {
+function SortSheet({ open, value, onClose, onPick }: { open: boolean; value: SortKey; onClose: () => void; onPick: (k: SortKey) => void }) {
   const sheet = useRef<HTMLElement>(null);
   const scrim = useRef<HTMLDivElement>(null);
   const close = useCallback(() => onClose(), [onClose]);
   useSheetDrag(sheet, scrim, close, open);
   useScrollLock(open);
-  const toggle = (key: "styles" | "cats", v: string) =>
-    setDraft({ ...draft, [key]: draft[key].includes(v) ? draft[key].filter((x) => x !== v) : [...draft[key], v] });
-
   return (
     <>
       <div ref={scrim} className={`scrim${open ? " on" : ""}`} onClick={onClose} />
-      <aside ref={sheet} className={`sheet center${open ? " on" : ""}`} role="dialog" aria-modal="true" aria-label="Sort and filter"
+      <aside ref={sheet} className={`sheet center${open ? " on" : ""}`} role="dialog" aria-modal="true" aria-label="Sort by"
         onKeyDown={(e) => e.key === "Escape" && onClose()}>
         <div className="grab" data-drag />
         <div className="shead" data-drag>
-          <h3>Sort and filter</h3>
+          <h3>Sort by</h3>
           <button type="button" className="ibtn" aria-label="Close" onClick={onClose}><XIcon /></button>
         </div>
         <div className="sbody">
-          <div className="fsec">
-            <h4>Sort by</h4>
+          <div className="fsec" style={{ paddingBottom: "calc(18px + env(safe-area-inset-bottom, 0px))" }}>
             <div className="radio">
               {(Object.keys(SORTS) as SortKey[]).map((k) => (
-                <button key={k} type="button" className={draft.sort === k ? "on" : ""} onClick={() => setDraft({ ...draft, sort: k })}>
+                <button key={k} type="button" className={value === k ? "on" : ""} onClick={() => onPick(k)}>
                   {SORTS[k]}<span className="dot" />
                 </button>
               ))}
             </div>
           </div>
-          {!lockedStyle && (
-            <div className="fsec">
-              <h4>Style</h4>
-              <div className="chips">
-                {STYLES.map((s) => (
-                  <button key={s.slug} type="button" className={`chip${draft.styles.includes(s.slug) ? " on" : ""}`} onClick={() => toggle("styles", s.slug)}>{s.name}</button>
-                ))}
-              </div>
-            </div>
-          )}
-          <div className="fsec">
-            <h4>Category</h4>
-            <div className="chips">
-              {CATEGORIES.map((c) => (
-                <button key={c} type="button" className={`chip${draft.cats.includes(c) ? " on" : ""}`} onClick={() => toggle("cats", c)}>{c}</button>
-              ))}
-            </div>
-          </div>
-        </div>
-        <div className="sfoot">
-          <button type="button" className="ghost" onClick={() => setDraft({ q: draft.q, styles: lockedStyle ? draft.styles : [], cats: [], sort: "rec" })}>Clear all</button>
-          <button type="button" className="go" disabled={!count} onClick={onApply}>
-            {count ? `Show ${count} piece${count === 1 ? "" : "s"}` : "No pieces match"}
-          </button>
         </div>
       </aside>
     </>
