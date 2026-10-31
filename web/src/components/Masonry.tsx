@@ -32,8 +32,10 @@ export default function Masonry({ pieces, empty }: { pieces: RankedPiece[]; empt
     cols[k].push({ piece, i, ratio });
     heights[k] += h / w + 0.25;
   });
+  // remount on content change so the grid fades in
+  const key = pieces.map((p) => p.slug).join("|");
   return (
-    <div className="masonry">
+    <div className="masonry fade" key={key}>
       {cols.map((col, ci) => (
         <div className="mcol" key={ci}>
           {col.map(({ piece, i, ratio }) => (

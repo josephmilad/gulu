@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useSaved } from "@/lib/store";
 import { scrollToGrid } from "@/lib/useShop";
+import { smoothScrollTo } from "@/lib/smoothScroll";
 import { HeartIcon, SearchIcon, XIcon } from "./Icons";
 
 const NAV = [
@@ -92,7 +93,19 @@ export default function TopBar() {
     <header ref={ref} className={`top${edge ? " edge" : ""}`}>
       <div className="wrap">
         <div className="bar">
-          <Link href="/" className="logo" aria-label="niche home">niche</Link>
+          <Link
+            href="/"
+            className="logo"
+            aria-label="niche home"
+            onClick={(e) => {
+              if (pathname === "/") {
+                e.preventDefault();
+                smoothScrollTo(0);
+              }
+            }}
+          >
+            niche
+          </Link>
           <nav className="dnav" aria-label="Main">
             {NAV.map((n) => (
               <Link key={n.href} href={n.href} className={pathname === n.href ? "on" : ""}>

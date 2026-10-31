@@ -48,7 +48,7 @@ export default function ShopGrid({ pieces = RANKED, lockedStyle }: { pieces?: Ra
     );
   const toggle = (key: "styles" | "cats", v: string) => {
     apply({ ...f, [key]: f[key].includes(v) ? f[key].filter((x) => x !== v) : [...f[key], v] });
-    if ((section.current?.getBoundingClientRect().top ?? 0) < 0) setTimeout(scrollToGrid, 60);
+    if ((section.current?.getBoundingClientRect().top ?? 0) < -4) setTimeout(scrollToGrid, 80);
   };
 
   const filterCount = (lockedStyle ? 0 : f.styles.length) + f.cats.length;
@@ -114,7 +114,8 @@ export default function ShopGrid({ pieces = RANKED, lockedStyle }: { pieces?: Ra
         onClose={() => setSortOpen(false)}
         onPick={(k) => {
           setSortOpen(false);
-          apply({ ...f, sort: k }, true);
+          apply({ ...f, sort: k });
+          setTimeout(scrollToGrid, 240);
         }}
       />
     </section>

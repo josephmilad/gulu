@@ -2,13 +2,14 @@
 
 import { useCallback } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { smoothScrollTo } from "./smoothScroll";
 
 export function scrollToGrid() {
   const el = document.getElementById("all");
   const top = document.querySelector<HTMLElement>(".top");
   if (!el) return;
   const y = el.getBoundingClientRect().top + window.scrollY - (top?.offsetHeight ?? 0) + 1;
-  window.scrollTo({ top: y, behavior: "smooth" });
+  return smoothScrollTo(y);
 }
 
 /** URL-backed shop state: filters, search and the open piece live in the query string. */
@@ -25,7 +26,7 @@ export function useShop() {
       const url = `${pathname}${qs ? `?${qs}` : ""}`;
       if (opts.push) router.push(url, { scroll: false });
       else router.replace(url, { scroll: false });
-      if (opts.toGrid) setTimeout(scrollToGrid, 60);
+      if (opts.toGrid) setTimeout(scrollToGrid, 80);
     },
     [params, pathname, router],
   );

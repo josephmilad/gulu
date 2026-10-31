@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useSaved } from "@/lib/store";
+import { smoothScrollTo } from "@/lib/smoothScroll";
 import { GridIcon, HeartIcon, HomeIcon, SearchIcon } from "./Icons";
 
 export default function BottomNav() {
@@ -10,18 +11,28 @@ export default function BottomNav() {
   const router = useRouter();
   const count = useSaved().length;
   const search = () => {
-    const focus = () => document.getElementById("q-mobile")?.focus();
+    const focus = () => document.getElementById("q-mobile")?.focus({ preventScroll: true });
     if (pathname !== "/") {
       router.push("/");
-      setTimeout(focus, 400);
+      setTimeout(focus, 450);
     } else {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      setTimeout(focus, 350);
+      smoothScrollTo(0).then(focus);
     }
   };
   return (
     <nav className="bnav" aria-label="App">
-      <Link href="/" className={pathname === "/" ? "on" : ""}><HomeIcon /><span>Discover</span></Link>
+      <Link
+        href="/"
+        className={pathname === "/" ? "on" : ""}
+        onClick={(e) => {
+          if (pathname === "/") {
+            e.preventDefault();
+            smoothScrollTo(0);
+          }
+        }}
+      >
+        <HomeIcon /><span>Discover</span>
+      </Link>
       <button type="button" onClick={search}><SearchIcon /><span>Search</span></button>
       <Link href="/saved" className={pathname === "/saved" ? "on" : ""}>
         <HeartIcon /><span>Saved</span><span className={`count-badge${count ? " on" : ""}`}>{count}</span>
