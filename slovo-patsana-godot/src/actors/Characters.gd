@@ -68,7 +68,7 @@ static func by_id(id: String) -> Dictionary:
 	return {}
 
 static func model_path(ch: Dictionary) -> String:
-	return "res://assets/characters/%s.glb" % ch.model
+	return Assets.p("characters/%s.glb" % ch.model)
 
 ## Characters whose model file exists.
 static func roster() -> Array:

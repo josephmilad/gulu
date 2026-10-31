@@ -87,7 +87,12 @@ func _prepare_meshes(opts: Dictionary) -> void:
 			continue
 		m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 		# Animated meshes move outside their rest-pose bounds; keep them from being culled.
-		m.custom_aabb = AABB(Vector3(-1.5, -0.5, -1.5), Vector3(3, 3, 3))
+		# Grown relative to the mesh's own box, so node scale (Meshy rigs are 0.01) doesn't matter.
+		# Skinned vertices follow the skeleton, not this node, so the node's own box (and
+		# its 0.01 scale on Meshy rigs) says nothing about where the body is: use ±2 m
+		# around the feet, converted into the node's units.
+		var k := 1.0 / maxf(m.global_transform.basis.get_scale().x, 1e-4) if m.is_inside_tree() else 1.0
+		m.custom_aabb = AABB(Vector3(-2, -2, -2) * k, Vector3(4, 4, 4) * k)
 		for i in range(m.mesh.get_surface_count()):
 			var mat := m.get_active_material(i)
 			if mat is StandardMaterial3D:

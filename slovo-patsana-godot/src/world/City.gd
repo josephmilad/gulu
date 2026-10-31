@@ -80,10 +80,10 @@ func _std(c: Color, rough := 0.9, metal := 0.0) -> StandardMaterial3D:
 ## Textured PBR material with the texture tiled every `meters` metres over a mesh of `size`.
 func _pbr(tex: String, rep: Vector2, extra := {}) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
-	m.albedo_texture = load("res://assets/tex/%s_diff.jpg" % tex)
+	m.albedo_texture = load(Assets.p("tex/%s_diff.jpg" % tex))
 	m.normal_enabled = true
-	m.normal_texture = load("res://assets/tex/%s_nor.jpg" % tex)
-	var rp := "res://assets/tex/%s_rough.jpg" % tex
+	m.normal_texture = load(Assets.p("tex/%s_nor.jpg" % tex))
+	var rp := Assets.p("tex/%s_rough.jpg" % tex)
 	if ResourceLoader.exists(rp):
 		m.roughness_texture = load(rp)
 	m.roughness = extra.get("roughness", 1.0)

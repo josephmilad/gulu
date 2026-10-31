@@ -115,9 +115,10 @@ class Minimap extends Control:
 			var y := S / 2 + dx * sn + dz * cs
 			if x < -40 or x > S + 40 or y < 0 or y > S + 10:
 				continue
-			var w := font.get_string_size(l.name, HORIZONTAL_ALIGNMENT_CENTER, -1, 12).x
-			draw_string(font, Vector2(x - w / 2 + 1, y + 1), l.name, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color.BLACK)
-			draw_string(font, Vector2(x - w / 2, y), l.name, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#ffe9a8"))
+			var lname := T.landmark(l.name)
+			var w := font.get_string_size(lname, HORIZONTAL_ALIGNMENT_CENTER, -1, 12).x
+			draw_string(font, Vector2(x - w / 2 + 1, y + 1), lname, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color.BLACK)
+			draw_string(font, Vector2(x - w / 2, y), lname, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#ffe9a8"))
 		# Player arrow (always points up, since the map rotates).
 		draw_set_transform(c, -(player.heading - r) + PI, Vector2.ONE)
 		var arrow := PackedVector2Array([Vector2(0, -8), Vector2(6, 7), Vector2(0, 3), Vector2(-6, 7)])
@@ -211,7 +212,7 @@ func setup(players: Array, c: City) -> Hud:
 		prompt_l.offset_bottom = -165
 		prompt_l.visible = false
 		add_child(prompt_l)
-		help_l = UI.label("WASD ходить · Shift бег · ЛКМ/J рука · ПКМ/K нога\nQ блок · E приём · Пробел уклон · F машина · Esc пауза", 14, Color(1, 1, 1, 0.75), false)
+		help_l = UI.label(T.t("hud.help"), 14, Color(1, 1, 1, 0.75), false)
 		help_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		help_l.anchor_left = 1
 		help_l.anchor_right = 1
@@ -273,7 +274,7 @@ func bubble(f: Fighter, text: String) -> void:
 	floats.append({"node": l, "pos": Vector3.ZERO, "follow": f, "t": 0.0, "life": 2.6, "rise": 0.0})
 
 func damage(f: Fighter, amount: float, blocked: bool) -> void:
-	var l := UI.label("блок" if blocked else str(roundi(amount)), 16 if blocked else 22, Color("#9ad0ff") if blocked else Color("#ffd24a"), true)
+	var l := UI.label(T.t("hud.block") if blocked else str(roundi(amount)), 16 if blocked else 22, Color("#9ad0ff") if blocked else Color("#ffd24a"), true)
 	l.add_theme_color_override("font_outline_color", Color.BLACK)
 	l.add_theme_constant_override("outline_size", 6)
 	add_child(l)
@@ -295,7 +296,7 @@ func set_speed(kmh) -> void:
 		return
 	speedo_l.visible = kmh != null
 	if kmh != null:
-		speedo_l.text = "%d км/ч" % roundi(kmh)
+		speedo_l.text = T.t("hud.kmh") % roundi(kmh)
 
 func prompt(text) -> void:
 	if prompt_l == null:
@@ -303,13 +304,13 @@ func prompt(text) -> void:
 	prompt_l.visible = text != null
 	if text != null:
 		if Game.touch:
-			text = text.replace("[F]", "[МАШИНА]")
+			text = text.replace("[F]", "[%s]" % T.t("touch.car"))
 		prompt_l.text = text
 
 func set_stats(money: int, auth: int, zone: String) -> void:
 	money_l.text = "%d ₽" % money
-	auth_l.text = "Авторитет: %d" % auth
-	zone_l.text = "Район: " + City.ZONE_NAMES[zone]
+	auth_l.text = T.t("hud.rep") % auth
+	zone_l.text = T.t("hud.zone") % T.zone(zone)
 
 func update(dt: float, cam: Camera3D, players: Array, others: Array, cam_yaw: float, special_cost: Array) -> void:
 	for i in range(players.size()):

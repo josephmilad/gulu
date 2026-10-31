@@ -30,6 +30,18 @@ func _ready() -> void:
 	Characters.load_bonus()
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
+const STORY_SAVE := "user://story.cfg"
+func story_progress() -> int:
+	var c := ConfigFile.new()
+	if c.load(STORY_SAVE) == OK:
+		return int(c.get_value("story", "progress", 0))
+	return 0
+
+func set_story_progress(n: int) -> void:
+	var c := ConfigFile.new()
+	c.set_value("story", "progress", n)
+	c.save(STORY_SAVE)
+
 func save_settings() -> void:
 	settings.set_value("gfx", "quality", quality)
 	settings.set_value("ui", "lang", lang)
@@ -131,6 +143,7 @@ func make_portraits() -> void:
 	cam.fov = 22
 	scene.add_child(cam)
 	cam.current = true
+	var first := true
 	for ch in Characters.roster():
 		var b := Body.new()
 		scene.add_child(b)
@@ -152,10 +165,15 @@ func make_portraits() -> void:
 		cam.position = Vector3(0.35, hp - 0.02, 1.45)
 		cam.look_at(Vector3(0, hp - 0.12, 0))
 		b.tree.advance(0.016)
-		await RenderingServer.frame_post_draw
-		await RenderingServer.frame_post_draw
+		# The first render compiles the character shaders; give it time.
+		for k in range(40 if first else 6):
+			await RenderingServer.frame_post_draw
+		first = false
 		var img := vp.get_texture().get_image()
 		portraits[ch.id] = ImageTexture.create_from_image(img)
+		if OS.get_cmdline_user_args().has("--dump-portraits"):
+			img.save_png("/tmp/sp/por_%s.png" % ch.id)
+			print("portrait ", ch.id, " head_y=%.2f" % hp)
 		b.queue_free()
 		await get_tree().process_frame
 	vp.queue_free()

@@ -23,8 +23,8 @@ func _snowy(tex: String, tint: Color, rep: Vector2, amount: float) -> ShaderMate
 	var m := ShaderMaterial.new()
 	m.shader = Shaders.get_shader("snowy")
 	if tex != "":
-		m.set_shader_parameter("albedo_tex", load("res://assets/tex/%s_diff.jpg" % tex))
-		m.set_shader_parameter("normal_tex", load("res://assets/tex/%s_nor.jpg" % tex))
+		m.set_shader_parameter("albedo_tex", load(Assets.p("tex/%s_diff.jpg" % tex)))
+		m.set_shader_parameter("normal_tex", load(Assets.p("tex/%s_nor.jpg" % tex)))
 		m.set_shader_parameter("has_tex", true)
 	else:
 		m.set_shader_parameter("has_tex", false)

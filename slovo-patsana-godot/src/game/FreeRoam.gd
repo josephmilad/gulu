@@ -66,14 +66,14 @@ func _ready() -> void:
 	actor_layer.add_child(fill)
 	var ch := Characters.by_id(id)
 	var p := Fighter.create(actor_layer, self, {"path": Characters.model_path(ch), "hero": true, "hp": ch.hp, "power": ch.power, "speed": ch.speed,
-		"special": ch.special, "regen": Characters.regen_of(ch), "team": "universam", "name": Characters.call_name(ch), "char_id": ch.id})
+		"special": ch.special, "regen": Characters.regen_of(ch), "team": "universam", "name": T.call_name(ch), "char_id": ch.id})
 	p.place(city.spawn.x, city.spawn.z, city.spawn.heading)
 	p.data["is_player"] = true
 	fighters.append(p)
 	players.append(p)
 	cam = FollowCam.new(camera)
 	cam.snap(p.x, p.z, p.heading)
-	hud = Hud.new().setup([{"f": p, "portrait": Game.portraits.get(ch.id), "title": Characters.full_title(ch)}], city)
+	hud = Hud.new().setup([{"f": p, "portrait": Game.portraits.get(ch.id), "title": T.full_title(ch)}], city)
 	for hg in city.hangouts:
 		groups.append({"hang": hg, "team": hg.zone, "members": [], "respawn_at": 0.0, "wiped": false})
 	for i in range(PED_COUNT):
@@ -84,8 +84,7 @@ func _ready() -> void:
 	note_mat.albedo_color = Color("#9fd08a")
 	note_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	note_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	tip = UI.label("Левый палец — ходить (до упора — бег) · правый — камера · кнопки справа — драка" if Game.touch
-		else "Кликни мышью, чтобы управлять камерой · H — управление", 16, Color(1, 1, 1, 0.85))
+	tip = UI.label(T.t("roam.tip_touch") if Game.touch else T.t("roam.tip"), 16, Color(1, 1, 1, 0.85))
 	tip.add_theme_stylebox_override("normal", UI.box(Color(0, 0, 0, 0.5)))
 	tip.anchor_left = 0.5
 	tip.anchor_right = 0.5
@@ -94,7 +93,7 @@ func _ready() -> void:
 	tip.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	hud.add_child(tip)
 	get_tree().create_timer(9.0).timeout.connect(func(): if is_instance_valid(tip): tip.visible = false)
-	hud.notice(Characters.full_title(ch).to_upper(), "Район Универсама. Держи слово.", 3.5)
+	hud.notice(T.full_title(ch).to_upper(), T.t("roam.home"), 3.5)
 	Sfx.stop_music()
 	Sfx.start_wind()
 	if ResourceLoader.exists("res://src/game/Streets.gd"):
@@ -106,6 +105,7 @@ func _ready() -> void:
 	if not Game.touch:
 		Game.capture_mouse(true)
 		_had_lock = true
+	TouchUI.set_shown(true)
 
 # ---------- Arena callbacks ----------
 func on_hit(att: Fighter, vic: Fighter, res: Dictionary, hit: Dictionary) -> void:
@@ -152,25 +152,25 @@ func on_ko(att: Fighter, vic: Fighter) -> void:
 		return
 	if vic.team == "police":
 		if streets:
-			streets.add_wanted(1, "Ты вырубил милиционера!")
+			streets.add_wanted(1, T.t("police.ko"))
 		_drop_money(vic.x, vic.z, 10 + randi() % 15)
 		return
 	if vic.team == "razezd" or vic.team == "hadi":
 		authority += 3
 		_drop_money(vic.x, vic.z, 5 + randi() % 20)
 		if randf() < 0.4:
-			hud.bubble(att, Looks.pick(Looks.BARKS.ko))
+			hud.bubble(att, T.bark("ko"))
 		for g in groups:
 			if g.members.has(vic) and g.members.all(func(m): return not m.alive):
 				g.wiped = true
 				g.respawn_at = time + 90
 				authority += 10
-				hud.notice("ОТШИЛИ!", "%s: компания разогнана · +10 авторитета" % City.ZONE_NAMES[g.team])
+				hud.notice(T.t("roam.seen_off"), T.t("roam.seen_off_sub") % T.zone(g.team))
 				Sfx.ko()
 	elif vic.team == "civil":
 		authority = maxi(0, authority - 5)
 		_drop_money(vic.x, vic.z, 1 + randi() % 6)
-		hud.toast("Пацаны так не делают. −5 авторитета")
+		hud.toast(T.t("roam.civil_hit"))
 		if streets:
 			streets.add_wanted(1)
 
@@ -199,9 +199,9 @@ func wasted(is_busted := false) -> void:
 	col.set_anchors_preset(Control.PRESET_CENTER)
 	col.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	col.grow_vertical = Control.GROW_DIRECTION_BOTH
-	var h := UI.label("ЗАДЕРЖАН" if is_busted else "ТЕБЯ ОТШИЛИ", 80, UI.RED, true)
+	var h := UI.label(T.t("roam.busted") if is_busted else T.t("roam.wasted"), 80, UI.RED, true)
 	h.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	var s := UI.label("Ночь в отделении. Милиция забрала половину денег." if is_busted else "Пацаны подберут. Потеряно немного денег.", 22)
+	var s := UI.label(T.t("roam.busted_sub") if is_busted else T.t("roam.wasted_sub"), 22)
 	s.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	col.add_child(h)
 	col.add_child(s)
@@ -253,13 +253,13 @@ func spawn_npc(team: String, role: String, x: float, z: float, home: Vector2) ->
 		spec = Looks.gang_spec(team)
 	var fname: String
 	if team == "civil":
-		fname = Looks.pick(Looks.CIVIL_NAMES_F if spec.female else Looks.CIVIL_NAMES_M)
+		fname = Looks.pick(T.list("civil_f" if spec.female else "civil_m"))
 	elif team == "police":
-		fname = Looks.pick(Looks.POLICE_NAMES)
+		fname = Looks.pick(T.list("police_names"))
 	elif role == "ally":
-		fname = Looks.pick(Looks.ALLY_NICKS)
+		fname = Looks.pick(T.list("ally_nicks"))
 	else:
-		fname = Looks.pick(Looks.GANG_NICKS)
+		fname = Looks.pick(T.list("gang_nicks"))
 	var hp := 40.0 if team == "civil" else (90.0 if role == "ally" else 55.0 + floori(authority / 5.0) * 3)
 	var o := spec.duplicate()
 	o.merge({"hp": minf(hp, 110), "power": 0.6 if team == "civil" else 0.8, "speed": 1.0, "team": team, "name": fname})
@@ -349,9 +349,11 @@ func pause(on: bool, controls := false) -> void:
 		pass
 	if not on:
 		Game.capture_mouse(true)
+		TouchUI.set_shown(true)
 		return
 	Game.capture_mouse(false)
-	var ov := UI.overlay("УПРАВЛЕНИЕ" if controls else "ПАУЗА")
+	TouchUI.set_shown(false)
+	var ov := UI.overlay(T.t("pause.controls") if controls else T.t("pause"))
 	if controls:
 		var c := UI.label(Controls.text(), 18)
 		ov.col.add_child(c)
@@ -363,23 +365,24 @@ func pause(on: bool, controls := false) -> void:
 			fn.call())
 		ov.col.add_child(b)
 		return b
-	first = mk.call("Продолжить", func(): pause(false))
+	first = mk.call(T.t("pause.resume"), func(): pause(false))
 	if not controls:
-		mk.call("Управление", func(): pause(true, true))
-		var names := {"high": "высокая", "medium": "средняя", "low": "низкая"}
+		mk.call(T.t("pause.controls"), func(): pause(true, true))
 		var order := ["high", "medium", "low"]
-		var gb: Button = mk.call("Графика: " + names[Game.quality], func(): pass)
+		var gb: Button = mk.call(T.t("pause.gfx") % T.t("gfx." + Game.quality), func(): pass)
 		gb.pressed.connect(func():
 			var next: String = order[(order.find(Game.quality) + 1) % 3]
 			Game.set_quality(next)
-			gb.text = "Графика: " + names[next])
-	mk.call("Главное меню", func(): on_quit.call())
+			gb.text = T.t("pause.gfx") % T.t("gfx." + next))
+	mk.call(T.t("menu.main"), func(): on_quit.call())
 	hud.add_child(ov.root)
 	pause_ui = ov.root
 	first.grab_focus()
 
 # ---------- Frame ----------
-func _process(dt: float) -> void:
+func _process(raw_dt: float) -> void:
+	# Long frames (a slow machine, a hitch) must not blow up the arcade physics.
+	var dt := minf(raw_dt, 0.05)
 	if paused:
 		_render_only(0)
 		return
@@ -461,7 +464,7 @@ func _process(dt: float) -> void:
 	var zn := City.zone_at(p.x, p.z)
 	if zn != zone:
 		zone = zn
-		hud.notice(City.ZONE_NAMES[zn].to_upper(), "Своя территория" if zn == "universam" else "Чужой район. Смотри в оба.", 2)
+		hud.notice(T.zone(zn).to_upper(), T.t("roam.own_turf") if zn == "universam" else T.t("roam.foreign"), 2)
 	hud.set_stats(money, authority, zn)
 	if streets and streets.player_car:
 		_render_only(dt, it.look_x, it.look_y, streets.player_car.speed > 1, false, streets.player_car.heading)
@@ -503,6 +506,7 @@ func _nearest_threat(p: Fighter) -> Fighter:
 	return best
 
 func dispose() -> void:
+	TouchUI.set_shown(false)
 	Game.capture_mouse(false)
 	Game.time_scale = 1
 	if streets:

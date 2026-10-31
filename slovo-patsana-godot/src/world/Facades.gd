@@ -68,9 +68,9 @@ static func _std(c: Color, rough := 0.9, metal := 0.0) -> StandardMaterial3D:
 func _wall(tex: String, tex_meters: float, tint: Color, seams: bool) -> ShaderMaterial:
 	var m := ShaderMaterial.new()
 	m.shader = Shaders.get_shader("wall")
-	m.set_shader_parameter("albedo_tex", load("res://assets/tex/%s_diff.jpg" % tex))
-	m.set_shader_parameter("normal_tex", load("res://assets/tex/%s_nor.jpg" % tex))
-	var rp := "res://assets/tex/%s_rough.jpg" % tex
+	m.set_shader_parameter("albedo_tex", load(Assets.p("tex/%s_diff.jpg" % tex)))
+	m.set_shader_parameter("normal_tex", load(Assets.p("tex/%s_nor.jpg" % tex)))
+	var rp := Assets.p("tex/%s_rough.jpg" % tex)
 	if ResourceLoader.exists(rp):
 		m.set_shader_parameter("rough_tex", load(rp))
 	m.set_shader_parameter("tint", Vector3(tint.r, tint.g, tint.b))

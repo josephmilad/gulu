@@ -38,7 +38,7 @@ func say(w: Node, f: Fighter, key: String) -> void:
 	if _bark_cd > 0:
 		return
 	_bark_cd = 4 + randf() * 4
-	w.bark(f, Looks.pick(Looks.BARKS[key]))
+	w.bark(f, T.bark(key))
 
 ## Make this NPC fight `t` (and tell friends nearby).
 func engage(f: Fighter, t: Fighter, w: Node, rally := true) -> void:

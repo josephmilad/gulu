@@ -31,13 +31,13 @@ static func pick(list: Array):
 ## {path, tint, tint_amt, scale, female}
 static func gang_spec(team: String) -> Dictionary:
 	var g: Dictionary = GANG[team]
-	return {"path": "res://assets/characters/%s.glb" % pick(g.models), "tint": pick(g.tints),
+	return {"path": Assets.p("characters/%s.glb" % pick(g.models)), "tint": pick(g.tints),
 		"tint_amt": 0.35 if team == "universam" else 0.8, "scale": 0.94 + randf() * 0.1, "female": false}
 
 static func civil_spec() -> Dictionary:
 	var m: String = pick(NPC_MODELS)
-	return {"path": "res://assets/characters/npc/%s.glb" % m, "female": m in FEMALE, "scale": 0.96 + randf() * 0.06}
+	return {"path": Assets.p("characters/npc/%s.glb" % m), "female": m in FEMALE, "scale": 0.96 + randf() * 0.06}
 
 ## Militsiya in winter greatcoats and fur hats.
 static func police_spec() -> Dictionary:
-	return {"path": "res://assets/characters/kashchey.glb", "tint": Color("#55606c"), "tint_amt": 0.9, "scale": 0.98 + randf() * 0.06, "female": false}
+	return {"path": Assets.p("characters/kashchey.glb"), "tint": Color("#55606c"), "tint_amt": 0.9, "scale": 0.98 + randf() * 0.06, "female": false}

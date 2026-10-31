@@ -76,3 +76,17 @@ func resolve_circle(x: float, z: float, r: float) -> Vector2:
 			x = cx + dx / d * r
 			z = cz + dz / d * r
 	return Vector2(x, z)
+
+## Fraction (0..1) along the segment a→b where it first enters a box tall enough; 1 when clear.
+func segment_hit(ax: float, ay: float, az: float, bx: float, by: float, bz: float) -> float:
+	var len := Vector2(bx - ax, bz - az).length()
+	var steps := maxi(2, ceili(len / 0.7))
+	for i in range(1, steps + 1):
+		var t := float(i) / steps
+		var x := ax + (bx - ax) * t
+		var z := az + (bz - az) * t
+		var y := ay + (by - ay) * t
+		for b in query(x, z, x, z):
+			if y < b.h:
+				return float(i - 1) / steps
+	return 1.0

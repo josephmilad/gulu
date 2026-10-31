@@ -133,7 +133,7 @@ class PropBatcher:
 		placed[name].append(MeshLib.xform(pos, ry, Vector3.ONE * scale))
 	func build(parent: Node3D) -> void:
 		for name in placed:
-			var path := "res://assets/props/%s.glb" % name
+			var path := Assets.p("props/%s.glb" % name)
 			if not ResourceLoader.exists(path):
 				push_warning("prop missing: " + name)
 				continue
