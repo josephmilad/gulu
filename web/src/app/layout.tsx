@@ -2,19 +2,15 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Instrument_Serif } from "next/font/google";
 import { Suspense } from "react";
 import "./globals.css";
-import SmoothScroll from "@/components/SmoothScroll";
-import Header from "@/components/Header";
+import "./shop.css";
+import TopBar from "@/components/TopBar";
 import Footer from "@/components/Footer";
-import PiecePanel from "@/components/PiecePanel";
+import BottomNav from "@/components/BottomNav";
+import DetailSheet from "@/components/DetailSheet";
+import Toast from "@/components/Toast";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
-const serif = Instrument_Serif({
-  subsets: ["latin"],
-  weight: "400",
-  style: ["normal", "italic"],
-  variable: "--font-serif",
-  display: "swap",
-});
+const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-inter", display: "swap" });
+const serif = Instrument_Serif({ subsets: ["latin"], weight: "400", variable: "--font-serif", display: "swap" });
 
 export const metadata: Metadata = {
   title: { default: "niche", template: "%s · niche" },
@@ -24,23 +20,26 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f5f3ef",
+  themeColor: "#ffffff",
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${inter.variable} ${serif.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col">
-        <SmoothScroll>
-          <Header />
-          <main className="flex-1">{children}</main>
-          <Footer />
-          <Suspense fallback={null}>
-            <PiecePanel />
-          </Suspense>
-        </SmoothScroll>
+    <html lang="en" className={`${inter.variable} ${serif.variable}`}>
+      <body>
+        <Suspense fallback={<div style={{ height: "var(--top)" }} />}>
+          <TopBar />
+        </Suspense>
+        <main>{children}</main>
+        <Footer />
+        <BottomNav />
+        <Suspense fallback={null}>
+          <DetailSheet />
+        </Suspense>
+        <Toast />
       </body>
     </html>
   );

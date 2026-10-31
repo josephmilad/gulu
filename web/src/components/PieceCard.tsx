@@ -1,64 +1,43 @@
 "use client";
 
-import Image from "next/image";
-import { motion } from "framer-motion";
-import type { Piece } from "@/lib/types";
-import { nicheScore } from "@/lib/types";
-import { img } from "@/lib/url";
+import type { CSSProperties } from "react";
+import type { RankedPiece } from "@/lib/catalog";
 import { STYLE_MAP } from "@/data/styles";
+import { toggleSaved, useSaved } from "@/lib/store";
+import { useShop } from "@/lib/useShop";
+import Media from "./Media";
+import { HeartIcon } from "./Icons";
 
-const RATIOS = ["aspect-[3/4]", "aspect-[4/5]", "aspect-[2/3]", "aspect-[3/4]", "aspect-[5/6]"];
-
-export default function PieceCard({
-  piece,
-  index,
-  onOpen,
-}: {
-  piece: Piece;
-  index: number;
-  onOpen: (slug: string) => void;
-}) {
-  const image = piece.images[0];
-  const ratio = RATIOS[index % RATIOS.length];
+export default function PieceCard({ piece, index = 0 }: { piece: RankedPiece; index?: number }) {
+  const { openPiece } = useShop();
+  const saved = useSaved().includes(piece.slug);
+  const img = piece.images[0];
   return (
-    <motion.article
-      initial={{ opacity: 0, y: 32 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "0px 0px -8% 0px" }}
-      transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: (index % 3) * 0.06 }}
-      className="group"
-    >
-      <button
-        type="button"
-        onClick={() => onOpen(piece.slug)}
-        className="block w-full cursor-pointer text-left"
-        aria-label={`${piece.brand} ${piece.name}`}
-      >
-        <div className={`relative ${ratio} w-full overflow-hidden bg-[#ebe8e2]`}>
-          <Image
-            src={img(image.src)}
-            alt={image.alt}
-            fill
-            sizes="(max-width: 640px) 50vw, (max-width: 1280px) 33vw, 25vw"
-            className="object-cover transition-transform duration-[1200ms] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.04]"
-          />
-          <div className="absolute inset-0 bg-ink/0 transition-colors duration-700 group-hover:bg-ink/5" />
-          <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-bg/85 px-2.5 py-1 text-[11px] backdrop-blur-md">
-            <span className="h-1.5 w-1.5 rounded-full bg-ink" />
-            {nicheScore(piece.signals)}
-          </div>
+    <article className="card" style={{ "--i": index % 8 } as CSSProperties}>
+      <button type="button" className="open" onClick={() => openPiece(piece.slug)} aria-label={`${piece.brand} ${piece.name}`}>
+        <div style={{ position: "relative" }}>
+          <Media src={img.src} alt={img.alt} sizes="(max-width: 700px) 50vw, (max-width: 1100px) 33vw, 25vw" priority={index < 4} />
+          <span className="rank" title="Niche ranking">
+            <i style={{ "--v": piece.rank } as CSSProperties} />
+            {piece.rank}
+          </span>
         </div>
-        <div className="mt-3 flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="truncate text-[13px] font-medium">{piece.brand}</p>
-            <p className="truncate text-[13px] text-ink-2">{piece.name}</p>
-            <p className="mt-1 text-[11px] text-muted">
-              {piece.styles.map((s) => STYLE_MAP[s].name).join(" · ")}
-            </p>
-          </div>
-          <p className="shrink-0 text-[13px] tabular-nums text-ink-2">{piece.price}</p>
+        <div className="info">
+          <span className="b">{piece.brand}</span>
+          <span className="n">{piece.name}</span>
+          <span className="p">{piece.price}</span>
+          <span className="s">{piece.styles.map((s) => STYLE_MAP[s].name).join(" · ")}</span>
         </div>
       </button>
-    </motion.article>
+      <button
+        type="button"
+        className={`heart${saved ? " on" : ""}`}
+        aria-pressed={saved}
+        aria-label={`Save ${piece.brand}`}
+        onClick={() => toggleSaved(piece.slug)}
+      >
+        <HeartIcon />
+      </button>
+    </article>
   );
 }

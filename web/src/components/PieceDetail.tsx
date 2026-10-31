@@ -1,193 +1,90 @@
 "use client";
 
-import Image from "next/image";
+import type { CSSProperties } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
-import type { Piece } from "@/lib/types";
-import { nicheScore } from "@/lib/types";
-import { img } from "@/lib/url";
+import { DIRECTION_LABEL, similar, type RankedPiece } from "@/lib/catalog";
 import { STYLE_MAP } from "@/data/styles";
-import { similarPieces } from "@/data/pieces";
-import NicheScore from "./NicheScore";
+import Media from "./Media";
+import PieceCard from "./PieceCard";
 
-function SignalBar({ label, value, invert }: { label: string; value: number; invert?: boolean }) {
-  const v = invert ? 1 - value : value;
+function Bar({ label, v }: { label: string; v: number }) {
   return (
-    <div>
-      <div className="flex items-center justify-between text-[11px]">
-        <span className="text-ink-2">{label}</span>
-        <span className="tabular-nums text-muted">{Math.round(v * 100)}</span>
-      </div>
-      <div className="mt-1.5 h-px w-full bg-line">
-        <motion.div
-          initial={{ scaleX: 0 }}
-          animate={{ scaleX: v }}
-          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
-          className="h-px origin-left bg-ink"
-        />
-      </div>
+    <div className="bar" style={{ "--v": v.toFixed(2) } as CSSProperties}>
+      <div className="h"><span>{label}</span><b>{Math.round(v * 100)}</b></div>
+      <div className="t"><div className="f" /></div>
     </div>
   );
 }
 
-export default function PieceDetail({
-  piece,
-  onSelect,
-  compact,
-}: {
-  piece: Piece;
-  onSelect?: (slug: string) => void;
-  compact?: boolean;
-}) {
-  const score = nicheScore(piece.signals);
-  const similar = similarPieces(piece);
-  const hero = piece.images[0];
-
+export function Ring({ value }: { value: number }) {
+  const r = 25;
+  const c = 2 * Math.PI * r;
   return (
-    <article className={compact ? "" : "mx-auto max-w-6xl px-4 md:px-8"}>
-      <div className={compact ? "" : "grid gap-10 md:grid-cols-[1.1fr_1fr] md:gap-16"}>
-        <motion.div
-          initial={{ opacity: 0, scale: 1.02 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-          className={`relative w-full overflow-hidden bg-[#ebe8e2] ${compact ? "aspect-[4/5]" : "aspect-[3/4]"}`}
-        >
-          <Image
-            src={img(hero.src)}
-            alt={hero.alt}
-            fill
-            priority
-            sizes={compact ? "(max-width: 768px) 100vw, 40vw" : "(max-width: 768px) 100vw, 55vw"}
-            className="object-cover"
-          />
-        </motion.div>
-
-        <div className={compact ? "px-5 pb-28 pt-6 md:px-8" : "pt-2"}>
-          <div className="flex items-start justify-between gap-6">
-            <div>
-              <p className="eyebrow">{piece.category}</p>
-              <h1 className="font-serif mt-2 text-3xl leading-[1.05] tracking-tight md:text-4xl">
-                {piece.brand}
-              </h1>
-              <p className="mt-1 text-base text-ink-2">{piece.name}</p>
-              <p className="mt-3 text-lg tabular-nums">{piece.price}</p>
-            </div>
-            <div className="flex flex-col items-center gap-1">
-              <NicheScore value={score} size={64} />
-              <span className="eyebrow whitespace-nowrap">Niche ranking</span>
-            </div>
-          </div>
-
-          <div className="mt-6 flex flex-wrap gap-2">
-            {piece.styles.map((s) => (
-              <Link
-                key={s}
-                href={`/styles/${s}`}
-                className="rounded-full border hairline px-3 py-1 text-[12px] text-ink-2 transition-colors hover:border-ink hover:text-ink"
-              >
-                {STYLE_MAP[s].name}
-              </Link>
-            ))}
-          </div>
-
-          <div className="mt-8 border-t hairline pt-6">
-            <p className="eyebrow">Why it&apos;s special</p>
-            <p className="mt-3 text-[15px] leading-relaxed text-ink">{piece.why}</p>
-          </div>
-
-          <div className="mt-6 border-t hairline pt-6">
-            <p className="eyebrow">Trend context</p>
-            <p className="mt-3 text-[14px] leading-relaxed text-ink-2">{piece.trendNote}</p>
-            {piece.styles[0] && (
-              <p className="mt-2 text-[12px] text-muted">
-                {STYLE_MAP[piece.styles[0]].name} · {STYLE_MAP[piece.styles[0]].trend.direction} ·{" "}
-                {STYLE_MAP[piece.styles[0]].trend.note}
-              </p>
-            )}
-          </div>
-
-          <div className="mt-6 grid grid-cols-2 gap-x-8 gap-y-5 border-t hairline pt-6">
-            <SignalBar label="Recognition" value={piece.signals.recognition} />
-            <SignalBar label="Under the radar" value={piece.signals.popularity} invert />
-            <SignalBar label="Longevity" value={piece.signals.longevity} />
-            <SignalBar label="Craft" value={piece.signals.craft} />
-          </div>
-
-          {(piece.madeIn || piece.materials) && (
-            <dl className="mt-6 grid grid-cols-2 gap-4 border-t hairline pt-6 text-[13px]">
-              {piece.madeIn && (
-                <div>
-                  <dt className="eyebrow">Made in</dt>
-                  <dd className="mt-1">{piece.madeIn}</dd>
-                </div>
-              )}
-              {piece.materials && (
-                <div>
-                  <dt className="eyebrow">Materials</dt>
-                  <dd className="mt-1">{piece.materials}</dd>
-                </div>
-              )}
-            </dl>
-          )}
-
-          {!compact && <ShopButton piece={piece} />}
-
-          <div className="mt-10 border-t hairline pt-6">
-            <p className="eyebrow">Similar pieces</p>
-            <div className="mt-4 grid grid-cols-4 gap-2 md:gap-3">
-              {similar.map((s) => {
-                const inner = (
-                  <>
-                    <div className="relative aspect-[3/4] w-full overflow-hidden bg-[#ebe8e2]">
-                      <Image
-                        src={img(s.images[0].src)}
-                        alt={s.images[0].alt}
-                        fill
-                        sizes="12vw"
-                        className="object-cover transition-transform duration-700 group-hover:scale-105"
-                      />
-                    </div>
-                    <p className="mt-1.5 truncate text-[11px]">{s.brand}</p>
-                  </>
-                );
-                return onSelect ? (
-                  <button key={s.slug} type="button" onClick={() => onSelect(s.slug)} className="group text-left">
-                    {inner}
-                  </button>
-                ) : (
-                  <Link key={s.slug} href={`/p/${s.slug}`} className="group">
-                    {inner}
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-
-          <p className="mt-8 text-[11px] leading-relaxed text-muted">
-            We don&apos;t sell this piece. The link opens {piece.retailer.name}. Imagery is
-            editorial placeholder photography until product feeds are connected.
-          </p>
-        </div>
+    <div className="rank-ring">
+      <div className="r">
+        <svg width="58" height="58">
+          <circle className="bg" cx="29" cy="29" r={r} />
+          <circle className="fg" cx="29" cy="29" r={r} strokeDasharray={c} strokeDashoffset={c - (value / 100) * c} />
+        </svg>
+        <span className="v">{value}</span>
       </div>
-    </article>
+      <small>Niche ranking</small>
+    </div>
   );
 }
 
-export function ShopButton({ piece, floating }: { piece: Piece; floating?: boolean }) {
+/** Piece content shared by the bottom sheet and the standalone piece page. */
+export default function PieceDetail({ piece, onStyle }: { piece: RankedPiece; onStyle?: () => void }) {
+  const st = STYLE_MAP[piece.styles[0]];
+  const img = piece.images[0];
   return (
-    <a
-      href={piece.retailer.url}
-      target="_blank"
-      rel="noopener sponsored"
-      data-outbound={piece.slug}
-      className={`group/btn flex w-full items-center justify-between bg-ink px-5 py-4 text-bg transition-colors hover:bg-ink-2 ${
-        floating ? "" : "mt-8"
-      }`}
-    >
-      <span className="text-[13px]">Shop at {piece.retailer.name}</span>
-      <span className="text-[13px] transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover/btn:translate-x-1">
-        ↗
-      </span>
-    </a>
+    <>
+      <Media src={img.src} alt={img.alt} sizes="(max-width: 900px) 100vw, 520px" priority className="dhero" />
+      <div className="dc">
+        <div className="dtop">
+          <div>
+            <div className="cat">{piece.category}</div>
+            <h2>{piece.brand}</h2>
+            <p className="nm">{piece.name}</p>
+            <p className="pr">{piece.price}</p>
+          </div>
+          <Ring value={piece.rank} />
+        </div>
+        <div className="dtags">
+          {piece.styles.map((s) => (
+            <Link key={s} href={`/?style=${s}#all`} className="chip" style={{ display: "inline-flex", alignItems: "center" }} onClick={onStyle}>
+              {STYLE_MAP[s].name}
+            </Link>
+          ))}
+        </div>
+        <div className="box"><h4>Why it&apos;s special</h4><p>{piece.why}</p></div>
+        <div className="box">
+          <h4>Trend context</h4>
+          <p className="sub">{piece.trendNote}</p>
+          <div className="trendline"><span className="dir">{DIRECTION_LABEL[st.trend.direction]}</span>{st.name}</div>
+        </div>
+        <div className="bars">
+          <Bar label="Recognition" v={piece.signals.recognition} />
+          <Bar label="Under the radar" v={1 - piece.signals.popularity} />
+          <Bar label="Longevity" v={piece.signals.longevity} />
+          <Bar label="Craft" v={piece.signals.craft} />
+        </div>
+        {(piece.madeIn || piece.materials) && (
+          <div className="facts">
+            {piece.madeIn && <div><small>Made in</small><span>{piece.madeIn}</span></div>}
+            {piece.materials && <div><small>Materials</small><span>{piece.materials}</span></div>}
+          </div>
+        )}
+        <div>
+          <div className="head" style={{ marginBottom: 10 }}><div><h2 style={{ fontSize: 17 }}>You may also like</h2></div></div>
+          <div className="rail" style={{ marginLeft: "calc(-1 * var(--gl))", marginRight: "calc(-1 * var(--gr))" }}>
+            {similar(piece).map((p, i) => <PieceCard key={p.slug} piece={p} index={i} />)}
+          </div>
+        </div>
+        <p className="note">
+          We don&apos;t sell this piece. The button opens {piece.retailer.name}. Photos are placeholders until product feeds are connected.
+        </p>
+      </div>
+    </>
   );
 }

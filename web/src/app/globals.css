@@ -1,13 +1,13 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #f5f3ef;
+  --bg: #ffffff;
   --bg-elev: #ffffff;
-  --ink: #111110;
-  --ink-2: #4a4947;
-  --muted: #8a8884;
-  --line: rgba(17, 17, 16, 0.1);
-  --panel: #faf9f7;
+  --ink: #121212;
+  --ink-2: #4f4f4f;
+  --muted: #8a8a8a;
+  --line: #e6e4e0;
+  --panel: #f4f3f1;
 }
 
 @theme inline {
@@ -23,29 +23,6 @@
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-html {
-  scroll-behavior: auto;
-}
-
-html.lenis,
-html.lenis body {
-  height: auto;
-}
-.lenis.lenis-smooth {
-  scroll-behavior: auto !important;
-}
-.lenis.lenis-stopped {
-  overflow: hidden;
-}
-
-body {
-  background: var(--bg);
-  color: var(--ink);
-  font-family: var(--font-sans);
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-}
-
 ::selection {
   background: var(--ink);
   color: var(--bg);
@@ -53,25 +30,20 @@ body {
 
 .font-serif {
   font-family: var(--font-serif);
-  font-feature-settings: "liga", "kern";
 }
 
 .eyebrow {
   font-size: 0.6875rem;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--muted);
+  font-weight: 600;
 }
 
 .hairline {
   border-color: var(--line);
 }
 
-/* underline link reveal (Fear of God / Lemaire style) */
-.u-link {
-  position: relative;
-  display: inline-block;
-}
 .u-link::after {
   content: "";
   position: absolute;
@@ -84,69 +56,7 @@ body {
   transform-origin: right;
   transition: transform 0.5s var(--ease-out-expo);
 }
-.u-link:hover::after,
-.u-link[aria-current="true"]::after {
+.u-link:hover::after {
   transform: scaleX(1);
   transform-origin: left;
-}
-
-/* marquee */
-@keyframes marquee {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
-}
-.marquee-track {
-  display: flex;
-  width: max-content;
-  animation: marquee 40s linear infinite;
-}
-.marquee:hover .marquee-track {
-  animation-play-state: paused;
-}
-
-/* image shimmer */
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
-}
-.shimmer {
-  background: linear-gradient(90deg, #ebe8e2 25%, #f3f1ec 50%, #ebe8e2 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.6s ease-in-out infinite;
-}
-
-/* hide scrollbar on chip rows */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  scrollbar-width: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .marquee-track {
-    animation: none;
-  }
-}
-
-/* filter bar follows the header: sits below it, moves to the top when it hides */
-.filter-bar {
-  top: 3.5rem;
-  transition: top 0.5s var(--ease-out-expo);
-}
-@media (min-width: 768px) {
-  .filter-bar {
-    top: 4rem;
-  }
-}
-html[data-header-hidden] .filter-bar {
-  top: 0;
 }
