@@ -4,7 +4,7 @@ A scroll-first discovery feed for clothing, shoes and accessories with low hype 
 AI surfaces pieces that people who know a category rate highly but that the algorithm has not
 flattened into a trend yet. Every piece links out to the platform that sells it. We do not sell.
 
-- `web/` — the Next.js site (App Router, Tailwind v4, Framer Motion, Lenis smooth scroll)
+- `web/` — the Next.js site (App Router, Tailwind v4)
 - `docs/PLAN.md` — launch plan, scoring model, AI pipeline and roadmap
 
 ## Run locally
@@ -21,12 +21,14 @@ npm run lint
 
 | Path | What |
 |---|---|
-| `web/src/data/pieces.ts` | Seed catalogue. Add a piece here and it appears in the feed, gets a page at `/p/<slug>`, and is scored automatically. |
-| `web/src/data/styles.ts` | Style archetypes (Old Money, Gorpcore…), their definitions and weekly trend reading. |
-| `web/src/lib/types.ts` | `Piece`, `Style`, `Signals` and the `nicheScore()` formula. |
-| `web/src/components/Feed.tsx` | Masonry feed with style/category filters stored in the URL. |
-| `web/src/components/PiecePanel.tsx` | Right-side panel on desktop, full-screen sheet on phone. Opens via `?p=<slug>`. |
-| `web/src/components/PieceDetail.tsx` | Piece page content, shared by the panel and `/p/<slug>`. |
+| `web/src/data/pieces.ts` | The catalogue. Add a piece here and it appears in the feed, gets a page at `/p/<slug>`, and is ranked automatically. |
+| `web/src/data/styles.ts` | Style archetypes (Old Money, Romantic…), their definitions and trend reading. |
+| `web/src/lib/types.ts` | `Piece`, `Style`, `Signals` and the ranking formula. |
+| `web/src/lib/catalog.ts` | Ranked pieces, sorting, filtering, banner slides and category photos. |
+| `web/src/app/shop.css` | The design system: colours, shapes, cards, sheets, bottom nav and animations. |
+| `web/src/components/ShopGrid.tsx` | The main grid with the sticky Sort and Filter bar and its bottom sheet. Filters live in the URL. |
+| `web/src/components/DetailSheet.tsx` | The piece sheet. Opens via `?p=<slug>`, slides in from the right on desktop and up from the bottom on phones, and can be swiped down to close. |
+| `web/src/lib/store.ts` | Saved pieces (kept in the browser only) and the toast messages. |
 
 ## Imagery
 
